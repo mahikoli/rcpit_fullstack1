@@ -1,0 +1,26 @@
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:white;
+padding:15px 20px;
+border-radius:10px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+margin-bottom:20px;
+}
+
+.header h2{
+margin:0;
+font-size:22px;
+}
+
+.header p{
+margin:0;
+color:gray;
+font-size:14px;
+}
+
+.bell{
+font-size:20px;
+cursor:pointer;
+}

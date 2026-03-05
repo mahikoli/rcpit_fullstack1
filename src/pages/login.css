@@ -1,0 +1,147 @@
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background-color: #f2f4f8;
+}
+
+.login-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-box {
+  background: #ffffff;
+  width: 400px;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.logo-box {
+  width: 60px;
+  height: 60px;
+  background: #243c8f;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+}
+
+h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.subtitle {
+  color: #6c757d;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.role-title {
+  text-align: left;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.role-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.role-buttons button {
+  flex: 1;
+  margin-right: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #e9ecef;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.3s;
+}
+
+.role-buttons button:last-child {
+  margin-right: 0;
+}
+
+.role-buttons button.active {
+  background: #243c8f;
+  color: white;
+}
+
+label {
+  display: block;
+  text-align: left;
+  margin-top: 15px;
+  margin-bottom: 5px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  background: #f1f3f5;
+  outline: none;
+  font-size: 14px;
+}
+
+input:focus {
+  border-color: #243c8f;
+}
+
+.login-btn {
+  width: 100%;
+  margin-top: 25px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #243c8f;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.login-btn:hover {
+  background: #1b2f70;
+}
+
+.bottom-text {
+  margin-top: 20px;
+  font-size: 13px;
+  color: #6c757d;
+}
+.register-text{
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.register-link{
+  color: blue;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.register-link:hover{
+  text-decoration: underline;
+}
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+}
+
+.full-width{
+  grid-column:span 2;
+}
