@@ -12,8 +12,8 @@ app = FastAPI()
 # Enable CORS (Relaxed for debugging)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Temporarily allow all for debugging 400 error
-    allow_credentials=True, # Credentials cannot be True with origin *
+    allow_origins=["https://chic-meerkat-8474e2.netlify.app"],  # 👈 tumhara frontend
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
