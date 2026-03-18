@@ -1,1 +1,0 @@
-import EquipmentCard from "./EquipmentCard";
