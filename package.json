@@ -1,9 +1,4 @@
 {
-<<<<<<< HEAD
-  "dependencies": {
-    "lucide-react": "^0.577.0",
-    "react-icons": "^5.6.0"
-=======
   "name": "rcpit-maintainance",
   "private": true,
   "version": "0.0.0",
@@ -17,7 +12,9 @@
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.1"
+    "react-router-dom": "^7.13.1",
+    "lucide-react": "^0.577.0",
+    "react-icons": "^5.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -32,6 +29,5 @@
   },
   "overrides": {
     "vite": "^8.0.0-beta.13"
->>>>>>> 810a11b8c43d6877c52f2d86a78c779ea68117a9
   }
 }
