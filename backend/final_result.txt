@@ -1,0 +1,4 @@
+Final Tables: admins,equipments,issues,notifications,staff,students,users
+WARNING: 'users' table STILL EXISTS.
+Successfully dropped 'users' on second attempt.
+Final Final Tables: admins,equipments,issues,notifications,staff,students
