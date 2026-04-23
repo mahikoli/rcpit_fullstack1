@@ -1,0 +1,243 @@
+body{
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background:#f2f4f7;
+  margin: 0px;
+}
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Ensure scrolling from the top */
+  padding: 40px 20px;
+  width: 100%;
+}
+
+.login-card{
+  width: 500px;
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+
+/* Logo */
+.login-card .logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.login-card .logo img {
+  width: 100px;
+  height: auto;
+  max-height: 90px;
+  object-fit: contain;
+  display: block;
+}
+
+.role-selection-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.role-btn-modern {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-btn-modern:hover {
+  border-color: #2d4a8a;
+  background: #f0f7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(45, 74, 138, 0.1);
+}
+
+.role-icon {
+  font-size: 32px;
+}
+
+.role-btn-modern span {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 15px;
+}
+
+/* Step 2 Header */
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+}
+
+.change-role {
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.change-role:hover {
+  color: #2d4a8a;
+  text-decoration: underline;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  text-align: left;
+}
+
+.input-group {
+  margin-bottom: 12px;
+}
+
+.input-group label {
+  font-weight: 600;
+  color: #475569;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.input-group input, .modern-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  background: #fcfcfc;
+}
+
+.input-group input:focus, .modern-select:focus {
+  outline: none;
+  border-color: #2d4a8a;
+  background: white;
+}
+
+.modern-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+.login-btn {
+  margin-top: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 10px rgba(45, 74, 138, 0.2);
+}
+
+.back-login span {
+  color: #2d4a8a;
+  font-weight: 700;
+}
+
+/* Animation */
+.animated-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+
+/* ── MOBILE RESPONSIVE ────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .login-container {
+    display: block !important; 
+    height: auto !important; 
+    min-height: 100vh;
+    padding: 40px 15px 100px; /* Safer top padding and large bottom padding */
+    background: #f2f4f7;
+    overflow-y: visible !important;
+  }
+
+  .login-card {
+    display: block;
+    width: 100%;
+    max-width: 450px; /* Slightly narrower for better mobile fit */
+    margin: 0 auto;
+    padding: 30px 15px; /* Reduced side padding */
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  }
+
+  .role-selection-grid {
+    display: grid !important;
+    grid-template-columns: 1fr; /* Stack roles on mobile to prevent cutting off */
+    gap: 12px;
+  }
+
+  .role-btn-modern {
+    padding: 15px;
+    flex-direction: row !important; /* Row layout for stacked buttons */
+    justify-content: flex-start;
+    gap: 15px;
+  }
+
+  .role-icon {
+    font-size: 24px;
+  }
+
+  .role-btn-modern span {
+    font-size: 14px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr; /* Stack form fields */
+    gap: 10px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  input, .modern-select, .login-btn {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  .login-container {
+    padding: 20px 10px;
+  }
+  
+  .login-card {
+    padding: 25px 15px;
+  }
+
+  .role-btn-modern span {
+    font-size: 13px;
+  }
+}

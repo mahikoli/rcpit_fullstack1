@@ -1,0 +1,243 @@
+body {
+margin: 0;
+font-family: "Segoe UI", sans-serif;
+background: linear-gradient(135deg,#f5f7fb,#e4ebf7);
+}
+
+/* Center container */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Ensure scrolling from the top */
+  padding: 40px 20px;
+}
+
+/* Login card */
+.login-box {
+background: #ffffff;
+width: 400px;
+padding: 40px;
+border-radius: 14px;
+box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+text-align: center;
+transition: 0.3s;
+}
+
+/* Logo */
+.login-box .logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  background: transparent;
+}
+
+.login-box .logo img {
+  width: 100px;
+  height: auto; /* Allow height to scale naturally */
+  max-height: 90px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Title */
+h2 {
+margin: 0;
+font-size: 22px;
+font-weight: 600;
+}
+
+/* Subtitle */
+.subtitle {
+color: #868f98;
+font-size: 14px;
+margin-bottom: 25px;
+}
+
+/* Role title */
+.role-title {
+text-align: left;
+font-weight: 500;
+margin-bottom: 8px;
+}
+
+/* Role buttons container */
+.role-buttons {
+display: flex;
+justify-content: space-between;
+margin-bottom: 20px;
+}
+
+/* Role buttons */
+.role-buttons button {
+  flex: 1;
+  margin-right: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 2px solid #d6dbe6;
+  background: #f4f6fb;
+  color: #243c8f;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* Remove margin from last button */
+.role-buttons button:last-child {
+margin-right: 0;
+}
+
+/* Hover effect */
+.role-buttons button:hover{
+  background:#e6ecff;
+  border-color:#243c8f;
+}
+
+/* Selected role */
+.role-buttons button.active {
+background: #243c8f;
+color: white;
+border-color: #243c8f;
+box-shadow: 0 3px 10px rgba(36,60,143,0.25);
+}
+
+/* Labels */
+label {
+display: block;
+text-align: left;
+margin-top: 15px;
+margin-bottom: 5px;
+font-size: 14px;
+font-weight: 500;
+}
+
+/* Input fields */
+input {
+width: 100%;
+padding: 12px;
+border-radius: 8px;
+border: 1px solid #d0d5dd;
+background: white;
+font-size: 14px;
+transition: 0.2s;
+}
+
+/* Input focus */
+input:focus {
+border-color: #243c8f;
+box-shadow: 0 0 5px rgba(36,60,143,0.3);
+outline: none;
+}
+
+/* Login button */
+.login-btn {
+width: 100%;
+margin-top: 25px;
+padding: 12px;
+border: none;
+border-radius: 8px;
+background: #243c8f;
+color: white;
+font-size: 15px;
+cursor: pointer;
+transition: 0.3s;
+}
+
+/* Login hover */
+.login-btn:hover {
+background: #1b2f70;
+transform: translateY(-2px);
+box-shadow:0 5px 12px rgba(0,0,0,0.15);
+}
+
+/* Register text */
+.register-text{
+text-align: center;
+margin-top: 15px;
+font-size: 14px;
+}
+
+.register-link{
+color: #243c8f;
+cursor: pointer;
+font-weight: bold;
+}
+
+.register-link:hover{
+text-decoration: underline;
+}
+
+/* Bottom text */
+.bottom-text {
+margin-top: 20px;
+font-size: 13px;
+color: #6c757d;
+}
+
+/* Grid layout */
+.form-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:15px;
+}
+
+.full-width{
+grid-column:span 2;
+}
+
+
+
+/* ── MOBILE RESPONSIVE ────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .login-container {
+    display: block !important; /* Standard block layout for scroll safety */
+    min-height: 100vh;
+    padding: 80px 15px 50px; /* Ample top/bottom padding */
+    background: linear-gradient(135deg, #f0f4ff 0%, #d9e2ff 100%);
+    overflow-y: visible;
+  }
+
+  .login-box {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto; /* Centered horizontally */
+    padding: 35px 20px;
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  .role-buttons {
+    flex-direction: row; /* KEEP AS ROW */
+    gap: 6px;
+  }
+
+  .role-buttons button {
+    padding: 8px 4px;
+    font-size: 12px;
+    margin-right: 0;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  input, .login-btn {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .role-buttons button {
+    font-size: 11px;
+    padding: 7px 2px;
+  }
+}

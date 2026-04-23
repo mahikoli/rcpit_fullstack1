@@ -1,0 +1,33 @@
+.issue-count{
+margin:15px 0;
+font-size:18px;
+}
+
+.issue-table{
+width:100%;
+border-collapse:collapse;
+background:white;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+.issue-table th,
+.issue-table td{
+padding:12px;
+border-bottom:1px solid #ddd;
+text-align:center;
+}
+
+.issue-table th{
+background:#1e3a8a;
+color:white;
+}
+
+.solved{
+color:green;
+font-weight:bold;
+}
+
+.pending{
+color:red;
+font-weight:bold;
+}
