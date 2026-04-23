@@ -1,1 +1,0 @@
-[{'id': 1, 'name': 'durgesh dipak salunkhe', 'lab_name': 'AIML'}, {'id': 2, 'name': 'Pratik Hrudaynath Bhavsar', 'lab_name': 'AIDS'}]
