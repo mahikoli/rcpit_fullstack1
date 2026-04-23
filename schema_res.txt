@@ -1,0 +1,1 @@
+['id', 'equipment_type', 'lab_name', 'room_name', 'equipment_name', 'equipment_id', 'description', 'user_name', 'email', 'prn', 'status', 'priority', 'created_at', 'technician_id', 'technician_name', 'estimated_days', 'technician_comment']
