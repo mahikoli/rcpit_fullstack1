@@ -5,3 +5,4 @@ pymysql
 python-jose
 bcrypt
 python-dotenv
+psycopg2-binary

@@ -7,7 +7,7 @@ from jose import jwt
 import bcrypt
 import os
 from dotenv import load_dotenv
-
+import psycopg2
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 # Create FastAPI app
@@ -28,15 +28,11 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not SECRET_KEY:
     raise Exception("SECRET_KEY not found in .env file")
 
-# Fix mysql:// to mysql+pymysql://
-if DATABASE_URL and DATABASE_URL.startswith("mysql://"):
-    DATABASE_URL = DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
-
 if not DATABASE_URL:
     raise Exception("DATABASE_URL not found in .env file")
 
 try:
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 except Exception as e:
     print(f"Could not create database engine: {e}")
     raise
@@ -53,7 +49,7 @@ def test_db_connection():
             # Auto-create equipments table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS equipments (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INT SERIAL PRIMARY KEY,
                     unique_id VARCHAR(100) UNIQUE NOT NULL,
                     equipment_type VARCHAR(50),
                     lab_name VARCHAR(100),
@@ -64,7 +60,7 @@ def test_db_connection():
             # Auto-create issues table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS issues (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INT SERIAL PRIMARY KEY,
                     equipment_type VARCHAR(50),
                     lab_name VARCHAR(100),
                     room_name VARCHAR(100),
@@ -90,7 +86,7 @@ def test_db_connection():
             # Create specialized user tables
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS students (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INT SERIAL PRIMARY KEY,
                     name VARCHAR(100),
                     email VARCHAR(100) UNIQUE,
                     password VARCHAR(255),
@@ -100,7 +96,7 @@ def test_db_connection():
             """))
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS staff (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INT SERIAL PRIMARY KEY,
                     name VARCHAR(100),
                     email VARCHAR(100) UNIQUE,
                     password VARCHAR(255),
@@ -112,7 +108,7 @@ def test_db_connection():
             """))
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS admins (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INT SERIAL PRIMARY KEY,
                     name VARCHAR(100),
                     email VARCHAR(100) UNIQUE,
                     password VARCHAR(255),
@@ -182,7 +178,7 @@ def test_db_connection():
             # Auto-create notifications table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS notifications (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INT SERIAL PRIMARY KEY,
                     target_role VARCHAR(50) NULL,
                     target_email VARCHAR(100) NULL,
                     message TEXT,
@@ -195,7 +191,7 @@ def test_db_connection():
             # Auto-create notices table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS notices (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INT SERIAL PRIMARY KEY,
                     title VARCHAR(255) NOT NULL,
                     body TEXT NOT NULL,
                     posted_by VARCHAR(100) NULL,
@@ -206,7 +202,7 @@ def test_db_connection():
             # Auto-create complaints table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS complaints (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INT SERIAL PRIMARY KEY,
                     student_name VARCHAR(100),
                     student_email VARCHAR(100),
                     department VARCHAR(100),
@@ -513,7 +509,7 @@ def check_and_run_background_tasks():
                 text("""
                     UPDATE issues 
                     SET is_escalated = TRUE, escalated_at = CURRENT_TIMESTAMP
-                    WHERE created_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 10 DAY)
+                    WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '10 days'
                       AND status NOT IN ('Completed', 'Resolved')
                       AND is_escalated = FALSE
                 """)
@@ -524,7 +520,7 @@ def check_and_run_background_tasks():
                 text("""
                     SELECT id, equipment_name FROM issues 
                     WHERE status = 'Resolved' 
-                      AND resolved_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 DAY)
+                      AND resolved_at < CURRENT_TIMESTAMP - INTERVAL '2 days'
                       AND user_confirmed = FALSE
                 """)
             ).fetchall()
@@ -642,9 +638,10 @@ def create_issue(data: IssueCreate):
                     "issue_subtype": data.issue_subtype,
                     "dept": data.student_dept
                 }
-            )
+             RETURNING id
+                )
             
-            new_issue_id = result.lastrowid
+            new_issue_id = result.fetchone()[0]
             
             # 4. Create notification for the auto-assigned technician
             if tech_email:
