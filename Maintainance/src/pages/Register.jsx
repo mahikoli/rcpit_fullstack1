@@ -133,6 +133,7 @@ export default function Register() {
                 <input type="text" name="mobile" placeholder="Enter mobile number" value={formData.mobile} onChange={handleChange} required />
               </div>
 
+              {role !== "staff" && (
                 <div className="input-group">
                   <label>Department</label>
                   <select name="department" value={formData.department} onChange={handleChange} className="modern-select" required>
@@ -148,6 +149,7 @@ export default function Register() {
                     <option value="Mechanical Engineering">Mechanical Engineering</option>
                   </select>
                 </div>
+              )}
 
               {role === "User" || role === "hod" ? (
                 <div className="input-group">

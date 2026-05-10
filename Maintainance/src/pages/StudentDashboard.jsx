@@ -2,6 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import "./StudentDashboard.css";
 import collegeLogo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
+import QRScanner from "../components/QRScanner.jsx";
+import { 
+  MapPin, Clock, User, ChevronRight, Cpu, Zap, 
+  Info, AlertCircle, CheckCircle, PenTool, ClipboardList, QrCode, Hash
+} from "lucide-react";
 
 const NAV_ITEMS = [
   { icon: "⊞", label: "Dashboard",     section: "overview", badge: null, badgeType: "" },
@@ -9,9 +14,9 @@ const NAV_ITEMS = [
   { icon: "➕", label: "Report Issue",  section: "actions",  badge: null, badgeType: "" },
   { icon: "🕐", label: "Issue History", section: "actions",  badge: null, badgeType: "" },
   { icon: "✅", label: "Resolved",      section: "actions",  badge: 2,    badgeType: "success" },
+  { icon: "⚠️", label: "Complain",      section: "actions",  badge: null, badgeType: "" },
   { icon: "📢", label: "Announcements", section: "more",     badge: 1,    badgeType: "" },
   { icon: "💬", label: "Messages",      section: "more",     badge: null, badgeType: "" },
-  { icon: "⚙",  label: "Settings",     section: "more",     badge: null, badgeType: "" },
 ];
 
 const CAT_CLASS = {
@@ -29,43 +34,47 @@ function IssueCard({ issue, onClick }) {
     Completed: "Solved"
   }[issue.status] || issue.status;
 
+  const CategoryIcon = issue.equipment_type === "IT" ? Cpu : Zap;
+
   return (
     <div
-      className={`sd-issue-card ${issue.status}`}
+      className={`sd-ticket-card ${issue.status?.toLowerCase().replace(/ /g, '')}`}
       onClick={onClick}
-      style={onClick ? { cursor: "pointer" } : {}}
     >
-      <div className="sd-issue-top">
-        <div>
-          <div className="sd-issue-id">#ISS-0{issue.id} &middot; {issue.equipment_type}</div>
-          <div className="sd-issue-title">{issue.equipment_name}</div>
-        </div>
-        <div className="sd-badges-row">
-          <span className={`sd-badge cat-${issue.equipment_type?.toLowerCase()}`}>{issue.equipment_type}</span>
-          <span className={`sd-badge status-${issue.status?.toLowerCase().replace(/ /g, '')}`}>
+      <div className="sd-ticket-accent" />
+      
+      <div className="sd-ticket-main">
+        <div className="sd-ticket-top">
+          <div className="sd-ticket-category">
+            <CategoryIcon size={12} />
+            <span>{issue.equipment_type}</span>
+          </div>
+          <div className={`sd-ticket-status status-${issue.status?.toLowerCase().replace(/ /g, '')}`}>
             {statusLabel}
-          </span>
-          {(issue.status === 'Completed' || issue.status === 'Solved') && (
-            <span className="sd-check-icon" style={{ color: '#16a34a', fontSize: '18px', marginLeft: '8px' }}>
-              ✅
-            </span>
-          )}
+          </div>
+        </div>
+
+        <div className="sd-ticket-body">
+          <h3 className="sd-ticket-title">{issue.equipment_name}</h3>
+          <p className="sd-ticket-subtitle">{issue.issue_subtype || "General Issue"}</p>
+        </div>
+
+        <div className="sd-ticket-footer">
+          <div className="sd-ticket-meta">
+            <Clock size={12} />
+            <span>{new Date(issue.created_at).toLocaleDateString()}</span>
+          </div>
+          <div className="sd-ticket-action">
+            <span>Details</span>
+            <ChevronRight size={14} />
+          </div>
         </div>
       </div>
-      <div className="sd-issue-meta">
-        <span>📍 {issue.lab_name}, {issue.room_name}</span>
-        <span>🕐 {new Date(issue.created_at).toLocaleDateString()}</span>
-        <span>👤 Self</span>
-      </div>
-      <div className="sd-issue-desc" style={{ fontSize: '12px', color: 'var(--sd-muted)', marginTop: '8px' }}>
-        {issue.description?.slice(0, 80)}{issue.description?.length > 80 ? '...' : ''}
-      </div>
-      {onClick && <div className="sd-issue-click-hint">Click to view full details →</div>}
     </div>
   );
 }
 
-function IssueDetailModal({ issue, onClose, onDelete }) {
+function IssueDetailModal({ issue, onClose, onDelete, onConfirm }) {
   if (!issue) return null;
 
   const statusLabel = {
@@ -89,7 +98,7 @@ function IssueDetailModal({ issue, onClose, onDelete }) {
         <div className="sd-modal-header">
           <div className="sd-modal-title-row">
             <div>
-              <div className="sd-modal-issue-id">#ISS-0{issue.id} &middot; {issue.equipment_type}</div>
+              <div className="sd-modal-issue-id">{issue.equipment_type}</div>
               <div className="sd-modal-title">{issue.equipment_name}</div>
             </div>
             <button className="sd-modal-close" onClick={onClose}>✕</button>
@@ -186,6 +195,19 @@ function IssueDetailModal({ issue, onClose, onDelete }) {
             🗑️ Remove Issue
           </button>
           <button className="sd-modal-footer-close" onClick={onClose}>Close</button>
+          
+          {issue.status === 'Resolved' && (
+            <button 
+              className="sd-modal-footer-confirm" 
+              onClick={() => {
+                if (window.confirm("Is the issue fixed? Clicking confirm will officially close this request.")) {
+                  onConfirm(issue.id);
+                }
+              }}
+            >
+              ✅ Confirm & Close
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -203,10 +225,16 @@ function DashboardPage({
   CIRCUMF, 
   ringOffset, 
   onIssueClick,
-  onNavigate 
+  onNavigate,
+  searchQuery,
+  notices
 }) {
   const [filter, setFilter] = useState("all");
   const filtered = filter === "all" ? issues : issues.filter((i) => i.status === filter);
+  
+  const displayedIssues = filtered.filter(i => 
+    !searchQuery || (i.equipment_id && i.equipment_id.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <>
@@ -249,13 +277,17 @@ function DashboardPage({
             ))}
           </div>
           <div className="sd-issues-list">
-            {filtered.map((issue) => (
-              <IssueCard
-                key={issue.id}
-                issue={issue}
-                onClick={() => onIssueClick(issue)}
-              />
-            ))}
+            {displayedIssues.length > 0 ? (
+              displayedIssues.map((issue) => (
+                <IssueCard
+                  key={issue.id}
+                  issue={issue}
+                  onClick={() => onIssueClick(issue)}
+                />
+              ))
+            ) : (
+              <div className="sd-empty">No issues found matching your search.</div>
+            )}
           </div>
         </div>
 
@@ -305,15 +337,24 @@ function DashboardPage({
             </div>
           </div>
 
-          <div className="sd-notice">
-            <div className="sd-notice-icon">📢</div>
-            <div>
-              <div className="sd-notice-title">Notice</div>
-              <div className="sd-notice-body">
-                Lab computers will be under maintenance on Wednesday. Please report
-                any urgent issues before Tuesday.
-              </div>
+          <div className="sd-notice" style={{ flexDirection: 'column', gap: 0, padding: 0, overflow: 'hidden', background: 'transparent', boxShadow: 'none', border: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div className="sd-notice-icon">📢</div>
+              <div className="sd-notice-title" style={{ fontSize: 15, fontWeight: 700 }}>Notices</div>
             </div>
+            {notices && notices.length > 0 ? (
+              notices.slice(0, 3).map(n => (
+                <div key={n.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--sd-purple, #7c3aed)', marginBottom: 3 }}>📌 {n.title}</div>
+                  <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>{n.body}</div>
+                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+                    {n.posted_by ? `By ${n.posted_by} · ` : ''}{n.created_at ? n.created_at.split(' ')[0] : ''}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ fontSize: 12, color: '#94a3b8', padding: '8px 0' }}>No notices posted yet.</div>
+            )}
           </div>
         </div>
       </div>
@@ -321,7 +362,10 @@ function DashboardPage({
   );
 }
 
-function MyIssuesPage({ issues, onIssueClick }) {
+function MyIssuesPage({ issues, onIssueClick, searchQuery }) {
+  const displayedIssues = issues.filter(i => 
+    !searchQuery || (i.equipment_id && i.equipment_id.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
   return (
     <>
       <div className="sd-sec-header">
@@ -329,10 +373,10 @@ function MyIssuesPage({ issues, onIssueClick }) {
         <span className="sd-sec-action">{issues.length} total</span>
       </div>
       <div className="sd-issues-list">
-        {issues.length === 0 ? (
-          <div className="sd-empty">No issues found.</div>
+        {displayedIssues.length === 0 ? (
+          <div className="sd-empty">{searchQuery ? "No issues found matching your search." : "No issues found."}</div>
         ) : (
-          issues.map((issue) => (
+          displayedIssues.map((issue) => (
             <IssueCard
               key={issue.id}
               issue={issue}
@@ -394,8 +438,6 @@ function ResolvedPage({ issues, onIssueClick }) {
   );
 }
 
-import QRScanner from "../components/QRScanner.jsx";
-import { QrCode, ClipboardList, PenTool, CheckCircle, AlertCircle } from "lucide-react";
 
 function ReportIssuePage({ onIssueSubmitted }) {
   const [equipmentType, setEquipmentType] = useState("");
@@ -730,17 +772,210 @@ function ReportIssuePage({ onIssueSubmitted }) {
   );
 }
 
+function ComplainStaffPage() {
+  const [formData, setFormData] = useState({
+    labAssistantName: "",
+    labName: "",
+    description: ""
+  });
+  const [successMsg, setSuccessMsg] = useState("");
+  const [myComplaints, setMyComplaints] = useState([]);
+
+  useEffect(() => {
+    fetchMyComplaints();
+  }, []);
+
+  const fetchMyComplaints = async () => {
+    try {
+      const email = localStorage.getItem("userEmail") || "";
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/complaints`);
+      if (res.ok) {
+        const data = await res.json();
+        // Filter out complaints submitted by this user
+        setMyComplaints(data.filter(c => c.student_email === email));
+      }
+    } catch (e) {
+      console.error("Failed to fetch my complaints:", e);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/complaints`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          student_name: localStorage.getItem("userName") || "Student",
+          student_email: localStorage.getItem("userEmail") || "",
+          department: localStorage.getItem("userDepartment") || "IT",
+          lab_assistant_name: formData.labAssistantName,
+          lab_name: formData.labName,
+          description: formData.description
+        })
+      });
+
+      if (response.ok) {
+        setSuccessMsg("Complaint submitted successfully to HOD.");
+        setFormData({ labAssistantName: "", labName: "", description: "" });
+        fetchMyComplaints(); // Refresh the list
+        setTimeout(() => setSuccessMsg(""), 5000);
+      } else {
+        alert("Failed to submit complaint.");
+      }
+    } catch (error) {
+      console.error("Complaint submit error:", error);
+      alert("Network error.");
+    }
+  };
+
+  const handleDeleteComplaint = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this complaint?")) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/complaints/${id}`, { method: "DELETE" });
+      if (res.ok) fetchMyComplaints();
+      else alert("Failed to delete complaint.");
+    } catch (e) {
+      alert("Error deleting complaint.");
+    }
+  };
+
+  return (
+    <div className="sd-report-form-container animated-fade-in">
+      <div className="sd-panel-card" style={{ maxWidth: 600, margin: "0 auto" }}>
+        <div className="sd-sec-header" style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="sd-report-icon-box" style={{ background: "#fee2e2", color: "#ef4444" }}>
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <div className="sd-sec-title">Complain Against Lab Assistant</div>
+              <div style={{ fontSize: 12, color: "var(--sd-muted)" }}>This complaint will only be sent to the HOD</div>
+            </div>
+          </div>
+        </div>
+
+        {successMsg && (
+          <div className="sd-success-banner">
+            <CheckCircle size={16} />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="sd-modern-form">
+          <div className="sd-fields-stack">
+            <div className="sd-field">
+              <label>Lab Assistant Name</label>
+              <input 
+                className="sd-input" 
+                placeholder="Enter Name" 
+                value={formData.labAssistantName} 
+                onChange={(e) => setFormData({...formData, labAssistantName: e.target.value})} 
+                required 
+              />
+            </div>
+            <div className="sd-field">
+              <label>Lab Name</label>
+              <input 
+                className="sd-input" 
+                placeholder="e.g. Database Lab" 
+                value={formData.labName} 
+                onChange={(e) => setFormData({...formData, labName: e.target.value})} 
+                required 
+              />
+            </div>
+            <div className="sd-field">
+              <label>Complaint Description</label>
+              <textarea 
+                className="sd-input" 
+                rows={5} 
+                placeholder="Describe the issue with the lab assistant..." 
+                value={formData.description} 
+                onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                required 
+              />
+            </div>
+            <button type="submit" className="sd-submit-btn" style={{ background: "#ef4444" }}>
+              Submit Complaint
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* My Past Complaints */}
+      <div className="sd-panel-card" style={{ maxWidth: 600, margin: "24px auto 0" }}>
+        <div className="sd-sec-header" style={{ marginBottom: 16 }}>
+          <div className="sd-sec-title">My Past Complaints</div>
+          <div className="sd-badge-count">{myComplaints.length}</div>
+        </div>
+
+        {myComplaints.length === 0 ? (
+          <div style={{ textAlign: "center", color: "var(--sd-muted)", padding: "20px" }}>
+            You haven't submitted any complaints yet.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {myComplaints.map(c => (
+              <div key={c.id} style={{ padding: "16px", borderRadius: "10px", border: "1px solid #e2e8f0", background: "#f8fafc", borderLeft: "4px solid #ef4444" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--sd-text)", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>Against: <span style={{ color: "#ef4444" }}>{c.lab_assistant_name}</span></span>
+                    <button 
+                      onClick={() => handleDeleteComplaint(c.id)}
+                      style={{ padding: "4px 8px", fontSize: "11px", background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 600 }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  <div style={{ fontSize: "11px", color: "var(--sd-muted)", paddingTop: "4px" }}>
+                    {c.created_at ? c.created_at.split(" ")[0] : ""}
+                  </div>
+                </div>
+                <div style={{ fontSize: "12px", color: "var(--sd-purple)", fontWeight: 600, marginBottom: "8px" }}>
+                  Lab: {c.lab_name}
+                </div>
+                <div style={{ fontSize: "13px", color: "#475569", lineHeight: 1.5 }}>
+                  {c.description}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 
 function StudentDashboard() {
   const navigate = useNavigate();
   const [issues, setIssues] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedDate = currentTime.toLocaleDateString('en-GB', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  });
+  const formattedTime = currentTime.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true
+  });
   const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState("Dashboard");
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isStuck, setIsStuck] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [notices, setNotices] = useState([]);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -749,6 +984,7 @@ function StudentDashboard() {
     department: localStorage.getItem("userDepartment") || "Information Technology",
     year: localStorage.getItem("userYear") || ""
   });
+  const [searchQuery, setSearchQuery] = useState("");
   const scrollRef = useRef(null);
   const profileRef = useRef(null);
 
@@ -784,6 +1020,7 @@ function StudentDashboard() {
   useEffect(() => {
     fetchIssues();
     fetchNotifications();
+    fetchNotices();
   }, []);
 
   const fetchNotifications = async () => {
@@ -795,6 +1032,18 @@ function StudentDashboard() {
       }
     } catch (e) {
       console.error("Failed to fetch notifications:", e);
+    }
+  };
+
+  const fetchNotices = async () => {
+    try {
+      const resp = await fetch(`${import.meta.env.VITE_API_URL}/notices`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setNotices(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch notices:", e);
     }
   };
 
@@ -811,6 +1060,25 @@ function StudentDashboard() {
       console.error("Error fetching issues:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmIssue = async (issueId) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/issues/${issueId}/confirm`, {
+        method: "PUT",
+      });
+      if (response.ok) {
+        setSelectedIssue(null);
+        fetchIssues();
+        alert("Thank you for confirming! The issue is now officially completed.");
+      } else {
+        const err = await response.json();
+        alert("Error: " + (err.detail || "Failed to confirm issue"));
+      }
+    } catch (error) {
+      console.error("Confirm error:", error);
+      alert("Network error. Please ensure backend is running.");
     }
   };
 
@@ -874,11 +1142,12 @@ function StudentDashboard() {
   const sectionLabels = { overview: "Overview", actions: "Actions", more: "More" };
 
   const pageMeta = {
-    "Dashboard":      { title: "Good morning, Student 👋",  sub: `${pendingIssues} pending issues · Sunday, 15 March 2026` },
+    "Dashboard":      { title: "Good morning, Student 👋",  sub: `${pendingIssues} pending issues · ${formattedDate} | ${formattedTime}` },
     "My Issues":      { title: "My Issues 📋",              sub: `${totalIssues} total issues reported` },
     "Issue History":  { title: "Issue History 🕐",          sub: "All your past reported issues" },
     "Resolved":       { title: "Resolved Issues ✅",        sub: `${solvedIssues} issues resolved` },
     "Report Issue":   { title: "Report an Issue ➕",        sub: "Fill in the details below" },
+    "Complain":       { title: "Complain ⚠️",              sub: "Complain against Lab Assistant (Visible only to HOD)" },
     "Profile":        { title: "My Profile 👤",            sub: "View and manage your personal info" },
     "Announcements":  { title: "Announcements 📢",          sub: "Latest updates from your institution" },
     "Messages":       { title: "Messages 💬",               sub: "Your conversations with support" },
@@ -903,16 +1172,20 @@ function StudentDashboard() {
             ringOffset={ringOffset}
             onIssueClick={(iss) => setSelectedIssue(iss)}
             onNavigate={setActiveNav}
+            searchQuery={searchQuery}
+            notices={notices}
           />
         );
       case "My Issues":
-        return <MyIssuesPage issues={issues} onIssueClick={(iss) => setSelectedIssue(iss)} />;
+        return <MyIssuesPage issues={issues} onIssueClick={(iss) => setSelectedIssue(iss)} searchQuery={searchQuery} />;
       case "Issue History":
         return <IssueHistoryPage issues={issues} onIssueClick={(iss) => setSelectedIssue(iss)} />;
       case "Resolved":
         return <ResolvedPage issues={issues} onIssueClick={(iss) => setSelectedIssue(iss)} />;
       case "Report Issue":
         return <ReportIssuePage onIssueSubmitted={fetchIssues} />;
+      case "Complain":
+        return <ComplainStaffPage />;
       case "Profile":
         return (
           <div className="sd-profile-view animated-fade-in">
@@ -1105,7 +1378,16 @@ function StudentDashboard() {
             </div>
           </div>
           <div className="sd-topbar-actions">
-            <div className="sd-search">🔍 Search issues...</div>
+            <div className="sd-search-container">
+              <span className="sd-search-icon">🔍</span>
+              <input 
+                type="text" 
+                className="sd-search-input" 
+                placeholder="Search by Equipment ID..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
             <div className="sd-icon-btn" onClick={() => {
               const msg = notifications.length > 0 ? notifications.map(n => n.message).join('\n') : "No notifications";
               alert(msg);
@@ -1125,6 +1407,7 @@ function StudentDashboard() {
           issue={selectedIssue}
           onClose={() => setSelectedIssue(null)}
           onDelete={handleDeleteIssue}
+          onConfirm={handleConfirmIssue}
         />
       )}
 

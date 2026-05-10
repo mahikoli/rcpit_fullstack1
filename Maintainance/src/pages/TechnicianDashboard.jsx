@@ -5,9 +5,9 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 
 // ─── UTILS ──────────────────────────────────────────────────────────────────
-const TABS = ["All", "Assigned", "In Progress", "Completed"];
-const FILTER_MAP = { All: null, Assigned: "Assigned", "In Progress": "In Progress", Completed: "Completed" };
-const STATUS_LABEL = { Assigned: "Assigned", "In Progress": "In Progress", Completed: "Completed" };
+const TABS = ["All", "Assigned", "In Progress", "Resolved", "Completed"];
+const FILTER_MAP = { All: null, Assigned: "Assigned", "In Progress": "In Progress", Resolved: "Resolved", Completed: "Completed" };
+const STATUS_LABEL = { Assigned: "Assigned", "In Progress": "In Progress", Resolved: "Resolved", Completed: "Completed" };
 
 const CIRCUMFERENCE = 2 * Math.PI * 38;
 
@@ -150,7 +150,8 @@ export default function TechnicianDashboard() {
   const stats = [
     { label: "Assigned",    value: issues.filter(i => i.status === "Assigned").length, sub: "📌 Pending action", icon: "📋", cls: "s1" },
     { label: "In Progress", value: issues.filter(i => i.status === "In Progress").length, sub: "⚡ Active now",      icon: "⚙️", cls: "s2" },
-    { label: "Completed",   value: issues.filter(i => i.status === "Completed").length, sub: "🎯 Total done",       icon: "✅", cls: "s4" },
+    { label: "Resolved",    value: issues.filter(i => i.status === "Resolved").length,    sub: "⏳ Awaiting User",   icon: "⏳", cls: "s3" },
+    { label: "Completed",   value: issues.filter(i => i.status === "Completed").length,   sub: "🎯 Final done",      icon: "✅", cls: "s4" },
   ];
 
   const highCount = issues.filter(i => i.priority === "High").length;
@@ -196,6 +197,7 @@ export default function TechnicianDashboard() {
             { id: "issues",    icon: "📋", label: "All Issues",  badge: issues.length, badgeType: "warn",    section: null },
             { id: "assigned",  icon: "📌", label: "Assigned",    badge: issues.filter(i => i.status === "Assigned").length, section: "My Work" },
             { id: "inprogress",icon: "⚙️", label: "In Progress", badge: issues.filter(i => i.status === "In Progress").length, section: null },
+            { id: "resolved",  icon: "⏳", label: "Resolved",    badge: issues.filter(i => i.status === "Resolved").length, badgeType: "warn", section: null },
             { id: "completed", icon: "✅", label: "Completed",   badge: issues.filter(i => i.status === "Completed").length, badgeType: "success", section: null },
             { id: "reports",   icon: "📊", label: "Reports",     section: "Tools" },
             { id: "schedule",  icon: "🗓️", label: "Schedule",    section: null },
@@ -211,6 +213,7 @@ export default function TechnicianDashboard() {
                   if (item.id === "issues") setActiveTab("All");
                   if (item.id === "assigned") setActiveTab("Assigned");
                   if (item.id === "inprogress") setActiveTab("In Progress");
+                  if (item.id === "resolved") setActiveTab("Resolved");
                   if (item.id === "completed") setActiveTab("Completed");
                   setSidebarOpen(false);
                 }}
@@ -277,7 +280,7 @@ export default function TechnicianDashboard() {
     <div className="td-avatar">{userName.substring(0, 2).toUpperCase()}</div>
     <div>
       <div className="td-name">{userName}</div>
-      <div className="td-role">{localStorage.getItem("userField") || "Technician"}</div>
+      <div className="td-role">Technician</div>
     </div>
     <span className="td-profile-arrow">{profileOpen ? "▲" : "▼"}</span>
   </div>
@@ -381,7 +384,7 @@ export default function TechnicianDashboard() {
                           <button className="td-chip c2" onClick={() => updateStatus(issue.id, 'In Progress')}>Start Work</button>
                         )}
                         {issue.status === 'In Progress' && (
-                          <button className="td-chip c4" onClick={() => updateStatus(issue.id, 'Completed')}>Mark Completed</button>
+                          <button className="td-chip c4" onClick={() => updateStatus(issue.id, 'Resolved')}>Mark Fixed</button>
                         )}
                       </div>
                     </div>
@@ -483,7 +486,7 @@ export default function TechnicianDashboard() {
                   <div className="td-issue-actions" style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
                     <button className="td-chip c1" onClick={() => { setSelectedIssueForDetails(issue); setDetailsModal(true); }}>🔍 Details</button>
                     {issue.status === 'Assigned' && <button className="td-chip c2" onClick={() => updateStatus(issue.id, 'In Progress')}>Start Work</button>}
-                    {issue.status === 'In Progress' && <button className="td-chip c4" onClick={() => updateStatus(issue.id, 'Completed')}>Complete</button>}
+                    {issue.status === 'In Progress' && <button className="td-chip c4" onClick={() => updateStatus(issue.id, 'Resolved')}>Mark Fixed</button>}
                   </div>
                 </div>
               ))}
@@ -517,10 +520,6 @@ export default function TechnicianDashboard() {
                 <div className="td-info-group">
                   <span className="td-info-label">Mobile Number</span>
                   <div className="td-info-value">{localStorage.getItem("userMobile") || "Not Provided"}</div>
-                </div>
-                <div className="td-info-group">
-                  <span className="td-info-label">Department</span>
-                  <div className="td-info-value">{localStorage.getItem("userField") || "IT"}</div>
                 </div>
                 <div className="td-info-group">
                   <span className="td-info-label">Qualification</span>
@@ -671,9 +670,9 @@ export default function TechnicianDashboard() {
                   className="td-btn-submit"
                   onClick={() => {
                     setDetailsModal(false);
-                    updateStatus(selectedIssueForDetails.id, 'Completed');
+                    updateStatus(selectedIssueForDetails.id, 'Resolved');
                   }}
-                >Mark Completed</button>
+                >Mark Fixed</button>
               )}
             </div>
           </div>
@@ -700,7 +699,7 @@ export default function TechnicianDashboard() {
                       required 
                     />
                   </div>
-                  <div className="td-field">
+                  <div className="td-field" style={{ gridColumn: '1 / -1' }}>
                     <label>Mobile Number</label>
                     <input 
                       type="text" 
@@ -708,27 +707,6 @@ export default function TechnicianDashboard() {
                       onChange={(e) => setEditFormData({...editFormData, mobile: e.target.value})}
                       required 
                     />
-                  </div>
-                  <div className="td-field">
-                    <label>Department</label>
-                    <select 
-                      className="td-select"
-                      style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1.5px solid var(--td-border)' }}
-                      value={editFormData.department}
-                      onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
-                      required
-                    >
-                      <option value="Aplied Science & Humanities">Aplied Science & Humanities</option>
-                      <option value="Civil Engineering">Civil Engineering</option>
-                      <option value="Computer Engineering">Computer Engineering</option>
-                      <option value="Computer Science & Engineering(Data Science)">Computer Science & Engineering(Data Science)</option>
-                      <option value="Electrical Engineering">Electrical Engineering</option>
-                      <option value="Electronics & TeleCommunication Engineering">Electronics & TeleCommunication Engineering</option>
-                      <option value="Information Technology">Information Technology</option>
-                      <option value="Artificial Intelligence & Machine Learning">Artificial Intelligence & Machine Learning</option>
-                      <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
-                      <option value="Mechanical Engineering">Mechanical Engineering</option>
-                    </select>
                   </div>
                   <div className="td-field" style={{ gridColumn: '1 / -1' }}>
                     <label>Qualification</label>

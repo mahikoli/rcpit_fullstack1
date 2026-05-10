@@ -27,7 +27,7 @@ function IssueDetailModal({ issue, onClose }) {
         <div className="sd-modal-header">
           <div className="sd-modal-title-row">
             <div>
-              <div className="sd-modal-issue-id">#ISS-0{issue.id} &middot; {issue.equipment_type}</div>
+              <div className="sd-modal-issue-id">{issue.equipment_type}</div>
               <div className="sd-modal-title">{issue.equipment_name}</div>
             </div>
             <button className="sd-modal-close" onClick={onClose}>✕</button>

@@ -16,6 +16,8 @@ const NAV_ITEMS = [
   { key: "users",     icon: "👥",  label: "Users"             },
   { key: "equipment", icon: "🔧",  label: "Equipment"         },
   { key: "add-equipment", icon: "➕", label: "Add Equipment"   },
+  { key: "notices",   icon: "📢",  label: "Notices"           },
+  { key: "complaints",icon: "⚠️",  label: "Complaints"        },
   { key: "reports",   icon: "📄",  label: "Reports"           },
 ];
 
@@ -40,6 +42,9 @@ function AdminDashboard() {
   const [technicians, setTechnicians] = useState([]);
   const [equipmentsList, setEquipmentsList] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [notices, setNotices] = useState([]);
+  const [complaints, setComplaints] = useState([]);
+  const [noticeForm, setNoticeForm] = useState({ title: "", body: "" });
   const [loading, setLoading] = useState(true);
   const [userTab, setUserTab] = useState("student"); // 'student' or 'staff'
   const [profileOpen, setProfileOpen] = useState(false);
@@ -53,6 +58,11 @@ function AdminDashboard() {
     mobile: localStorage.getItem("userMobile") || "",
     department: localStorage.getItem("userDepartment") || "Information Technology"
   });
+  const adminField = localStorage.getItem("userField");
+  const adminDept = localStorage.getItem("userDepartment");
+  const isIT = adminField === "IT" || adminDept === "Information Technology" || adminDept === "Computer Engineering";
+  const isElectrical = adminField === "Electrical" || adminDept === "Electrical Engineering";
+
   const scrollRef = useRef(null);
   const profileRef = useRef(null);
 
@@ -89,35 +99,107 @@ function AdminDashboard() {
     fetchEquipments();
     fetchTechnicians();
     fetchNotifications();
+    fetchNotices();
+    if (localStorage.getItem("adminRole") === "hod") {
+      fetchComplaints();
+    }
   }, []);
+
+  const fetchComplaints = async () => {
+    try {
+      const dept = localStorage.getItem("userDepartment") || "";
+      const url = dept ? `${import.meta.env.VITE_API_URL}/complaints?department=${encodeURIComponent(dept)}` : `${import.meta.env.VITE_API_URL}/complaints`;
+      const res = await fetch(url);
+      if (res.ok) setComplaints(await res.json());
+    } catch (e) { console.error("Failed to fetch complaints:", e); }
+  };
+
+  const fetchNotices = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/notices`);
+      if (res.ok) setNotices(await res.json());
+    } catch (e) { console.error("Failed to fetch notices:", e); }
+  };
+
+  const handlePostNotice = async (e) => {
+    e.preventDefault();
+    if (!noticeForm.title.trim() || !noticeForm.body.trim()) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/notices`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: noticeForm.title,
+          body: noticeForm.body,
+          posted_by: localStorage.getItem("userName") || "Admin"
+        })
+      });
+      if (res.ok) {
+        setNoticeForm({ title: "", body: "" });
+        fetchNotices();
+        alert("Notice posted successfully!");
+      }
+    } catch (e) { alert("Network error posting notice"); }
+  };
+
+  const handleDeleteNotice = async (id) => {
+    if (!window.confirm("Delete this notice?")) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/notices/${id}`, { method: "DELETE" });
+      if (res.ok) fetchNotices();
+    } catch (e) { alert("Failed to delete notice"); }
+  };
 
   const fetchNotifications = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/notifications/admin`);
+      if (!response.ok) throw new Error("Failed to fetch notifications");
       const data = await response.json();
-      setNotifications(data);
+      if (Array.isArray(data)) {
+        setNotifications(data);
+      } else {
+        console.warn("Expected array for notifications, got:", data);
+        setNotifications([]);
+      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
+      setNotifications([]);
     }
   };
 
   const fetchTechnicians = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/technicians`);
+      if (!response.ok) throw new Error("Failed to fetch technicians");
       const data = await response.json();
-      setTechnicians(data);
+      if (Array.isArray(data)) {
+        setTechnicians(data);
+      } else {
+        setTechnicians([]);
+      }
     } catch (error) {
       console.error("Failed to fetch technicians:", error);
+      setTechnicians([]);
     }
   };
 
   const fetchEquipments = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/equipments`);
+      const field = localStorage.getItem("userField");
+      let url = `${import.meta.env.VITE_API_URL}/equipments`;
+      if (field) url += `?field=${field}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch equipments");
       const data = await response.json();
-      setEquipmentsList(data);
+      if (Array.isArray(data)) {
+        setEquipmentsList(data);
+      } else {
+        setEquipmentsList([]);
+      }
     } catch (error) {
       console.error("Failed to fetch equipments:", error);
+      setEquipmentsList([]);
     }
   };
 
@@ -204,14 +286,21 @@ function AdminDashboard() {
       if (params.toString()) url += `?${params.toString()}`;
         
       const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch issues");
       const data = await response.json();
       
+      if (!Array.isArray(data)) {
+        console.warn("Expected array for issues, got:", data);
+        setIssues([]);
+        return;
+      }
+
       const mappedIssues = data.map(issue => ({
         id: `ISS-${String(issue.id).padStart(3, '0')}`,
         equipment: issue.equipment_name,
         location: `${issue.lab_name}, ${issue.room_name}`,
         priority: issue.priority,
-        date: issue.created_at.split(' ')[0],
+        date: issue.created_at ? issue.created_at.split(' ')[0] : "N/A",
         status: issue.status,
         technician: issue.technician_name || "",
         technicianId: issue.technician_id,
@@ -225,6 +314,7 @@ function AdminDashboard() {
       setIssues(mappedIssues);
     } catch (error) {
       console.error("Failed to fetch issues:", error);
+      setIssues([]);
     } finally {
       setLoading(false);
     }
@@ -233,10 +323,16 @@ function AdminDashboard() {
   const fetchUsers = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/users`);
+      if (!response.ok) throw new Error("Failed to fetch users");
       const data = await response.json();
-      setUsers(data);
+      if (Array.isArray(data)) {
+        setUsers(data);
+      } else {
+        setUsers([]);
+      }
     } catch (error) {
       console.error("Failed to fetch users:", error);
+      setUsers([]);
     }
   };
 
@@ -330,11 +426,11 @@ function AdminDashboard() {
 
         <nav className="ad-nav">
           <div className="ad-nav-label">Navigation</div>
-          {NAV_ITEMS.map(n => {
+          {NAV_ITEMS.filter(n => !(n.key === "complaints" && localStorage.getItem("adminRole") !== "hod")).map(n => {
             let badgeValue = 0;
-            if (n.key === "issues") badgeValue = issues.length;
+            if (n.key === "issues") badgeValue = Array.isArray(issues) ? issues.length : 0;
             if (n.key === "users") {
-              badgeValue = users.filter(u => u.role === "User" || u.role === "staff").length;
+              badgeValue = Array.isArray(users) ? users.filter(u => u.role === "User" || u.role === "staff").length : 0;
             }
 
             return (
@@ -429,20 +525,22 @@ function AdminDashboard() {
                 {page === "users"      && "Users"}
                 {page === "equipment"  && "Equipment List"}
                 {page === "add-equipment" && "Add New Equipment"}
+                {page === "notices"    && "Notices"}
+                {page === "complaints" && "Complaints"}
                 {page === "reports"    && "Reports"}
               </div>
-              <div className="ad-page-sub">College ERP · Admin Panel · Sunday, 15 March 2026</div>
+              <div className="ad-page-sub">College ERP · Admin Panel · {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
             </div>
           </div>
           <div className="ad-topbar-actions">
             <div className="ad-search">🔍 Search...</div>
             <div className="ad-icon-btn" onClick={() => {
               // Optionally show a list, for now we just show the count
-              const msg = notifications.length > 0 ? notifications.map(n => n.message).join('\n') : "No notifications";
+              const msg = Array.isArray(notifications) && notifications.length > 0 ? notifications.map(n => n.message).join('\n') : "No notifications";
               alert(msg);
             }}>
               🔔
-              {notifications.some(n => !n.is_read) && <span className="ad-notif-dot" />}
+              {Array.isArray(notifications) && notifications.some(n => !n.is_read) && <span className="ad-notif-dot" />}
             </div>
             <div className={`ad-nav-item${page === 'profile' ? ' active' : ''}`} onClick={() => setPage("profile")} style={{ display: 'none' }}></div>
             <div className="ad-icon-btn ad-add-btn">+</div>
@@ -720,8 +818,8 @@ function AdminDashboard() {
                           onChange={(e) => setEditingEquipment({...editingEquipment, equipment_type: e.target.value})}
                           required
                         >
-                          <option value="IT">IT Equipment</option>
-                          <option value="Electrical">Electrical</option>
+                          {(isIT || (!isIT && !isElectrical)) && <option value="IT">IT Equipment</option>}
+                          {(isElectrical || (!isIT && !isElectrical)) && <option value="Electrical">Electrical</option>}
                         </select>
                       </div>
                       <div>
@@ -805,10 +903,10 @@ function AdminDashboard() {
                     </div>
                     <div>
                       <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ad-muted)', marginBottom: '6px', display: 'block' }}>Category</label>
-                      <select name="equipment_type" className="ad-select" style={{ width: '100%', padding: '10px' }} required>
-                        <option value="">Select Category</option>
-                        <option value="IT">IT Equipment</option>
-                        <option value="Electrical">Electrical</option>
+                      <select name="equipment_type" className="ad-select" style={{ width: '100%', padding: '10px' }} required defaultValue={isIT ? "IT" : (isElectrical ? "Electrical" : "")}>
+                        {(!isIT && !isElectrical) && <option value="">Select Category</option>}
+                        {(isIT || (!isIT && !isElectrical)) && <option value="IT">IT Equipment</option>}
+                        {(isElectrical || (!isIT && !isElectrical)) && <option value="Electrical">Electrical</option>}
                       </select>
                     </div>
                     <div>
@@ -830,6 +928,123 @@ function AdminDashboard() {
                 </form>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── NOTICES PAGE ── */}
+        {page === "notices" && (
+          <div className="ad-equipment-view animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Post Notice Form */}
+            <div className="ad-table-card" style={{ padding: '24px' }}>
+              <div className="ad-sec-header" style={{ marginBottom: 16 }}>
+                <span className="ad-sec-title">📢 Post New Notice</span>
+              </div>
+              <form onSubmit={handlePostNotice}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ad-muted)', marginBottom: '6px', display: 'block' }}>Notice Title</label>
+                    <input
+                      className="ad-select"
+                      style={{ width: '100%', padding: '10px' }}
+                      placeholder="e.g. Lab Maintenance on Wednesday"
+                      value={noticeForm.title}
+                      onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ad-muted)', marginBottom: '6px', display: 'block' }}>Notice Body</label>
+                    <textarea
+                      className="ad-select"
+                      style={{ width: '100%', padding: '10px', minHeight: '90px', resize: 'vertical' }}
+                      placeholder="Write the notice details here..."
+                      value={noticeForm.body}
+                      onChange={(e) => setNoticeForm({ ...noticeForm, body: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="ad-chip c1" style={{ padding: '12px 24px', width: '100%', textAlign: 'center', fontSize: '14px', background: 'var(--ad-purple)', color: '#fff' }}>
+                    📢 Post Notice
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Existing Notices List */}
+            <div>
+              <div className="ad-sec-header" style={{ marginBottom: 16 }}>
+                <span className="ad-sec-title">All Notices</span>
+                <span className="ad-badge-count">{notices.length} total</span>
+              </div>
+              {notices.length === 0 ? (
+                <div className="ad-table-card" style={{ padding: '20px', textAlign: 'center', color: 'var(--ad-muted)' }}>No notices posted yet.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {notices.map(n => (
+                    <div key={n.id} className="ad-table-card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--ad-purple)', marginBottom: '4px' }}>📌 {n.title}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--ad-text)', lineHeight: 1.6 }}>{n.body}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--ad-muted)', marginTop: '6px' }}>
+                          By {n.posted_by || 'Admin'} · {n.created_at ? n.created_at.split(' ')[0] : ''}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteNotice(n.id)}
+                        className="ad-chip delete"
+                        style={{ padding: '6px 14px', fontSize: '12px', border: 'none', cursor: 'pointer', background: '#fee2e2', color: '#ef4444', whiteSpace: 'nowrap', flexShrink: 0 }}
+                      >
+                        🗑 Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── COMPLAINTS PAGE ── */}
+        {page === "complaints" && localStorage.getItem("adminRole") === "hod" && (
+          <div className="ad-equipment-view animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div className="ad-sec-header">
+              <span className="ad-sec-title">⚠️ Student Complaints</span>
+              <span className="ad-badge-count">{complaints.length} total</span>
+            </div>
+            
+            {complaints.length === 0 ? (
+              <div className="ad-table-card" style={{ padding: '30px', textAlign: 'center', color: 'var(--ad-muted)' }}>
+                <div style={{ fontSize: '40px', marginBottom: '10px' }}>🙌</div>
+                <div style={{ fontWeight: 600, color: 'var(--ad-text)', marginBottom: '5px' }}>No Complaints Found</div>
+                <div>Great! There are currently no student complaints regarding your lab assistants.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {complaints.map(c => (
+                  <div key={c.id} className="ad-table-card" style={{ padding: '20px', borderLeft: '4px solid #ef4444' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--ad-text)', marginBottom: '4px' }}>
+                          Complaint Against: <span style={{ color: '#ef4444' }}>{c.lab_assistant_name}</span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--ad-purple)', fontWeight: 600 }}>Lab: {c.lab_name}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--ad-muted)' }}>{c.created_at ? c.created_at.split(' ')[0] : ''}</div>
+                      </div>
+                    </div>
+                    
+                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', fontSize: '13px', color: '#334155', lineHeight: 1.6, marginBottom: '12px', border: '1px solid #e2e8f0' }}>
+                      {c.description}
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--ad-muted)', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                      <span>👤 Reported by: <strong style={{ color: 'var(--ad-text)' }}>{c.student_name}</strong> ({c.student_email})</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -905,7 +1120,7 @@ function AdminDashboard() {
       {/* ── EDIT PROFILE MODAL ── */}
       {isProfileModalOpen && (
         <div className="ad-modal-overlay">
-          <div className="ad-modal" style={{ maxWidth: '450px' }}>
+          <div className="ad-modal-content" style={{ maxWidth: '450px' }}>
             <div className="ad-modal-header">
               <h3>Edit My Profile</h3>
               <button className="ad-modal-close" onClick={() => setIsProfileModalOpen(false)}>×</button>

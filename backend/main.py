@@ -26,19 +26,19 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not SECRET_KEY:
-    raise Exception("❌ SECRET_KEY not found in .env file")
+    raise Exception("SECRET_KEY not found in .env file")
 
 # Fix mysql:// to mysql+pymysql://
 if DATABASE_URL and DATABASE_URL.startswith("mysql://"):
     DATABASE_URL = DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
 
 if not DATABASE_URL:
-    raise Exception("❌ DATABASE_URL not found in .env file")
+    raise Exception("DATABASE_URL not found in .env file")
 
 try:
     engine = create_engine(DATABASE_URL)
 except Exception as e:
-    print(f"❌ Could not create database engine: {e}")
+    print(f"Could not create database engine: {e}")
     raise
 
 # Test Connection on Startup
@@ -81,7 +81,9 @@ def test_db_connection():
                     technician_name VARCHAR(100) NULL,
                     estimated_days VARCHAR(50) NULL,
                     technician_comment TEXT NULL,
-                    issue_subtype VARCHAR(100) NULL
+                    issue_subtype VARCHAR(100) NULL,
+                    user_confirmed BOOLEAN DEFAULT FALSE,
+                    resolved_at TIMESTAMP NULL
                 )
             """))
             
@@ -170,6 +172,12 @@ def test_db_connection():
             try:
                 conn.execute(text("ALTER TABLE staff ADD COLUMN department VARCHAR(100) NULL"))
             except Exception: pass
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN user_confirmed BOOLEAN DEFAULT FALSE"))
+            except Exception: pass
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN resolved_at TIMESTAMP NULL"))
+            except Exception: pass
 
             # Auto-create notifications table
             conn.execute(text("""
@@ -184,12 +192,51 @@ def test_db_connection():
                 )
             """))
 
+            # Auto-create notices table
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS notices (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    body TEXT NOT NULL,
+                    posted_by VARCHAR(100) NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+
+            # Auto-create complaints table
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS complaints (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    student_name VARCHAR(100),
+                    student_email VARCHAR(100),
+                    department VARCHAR(100),
+                    lab_assistant_name VARCHAR(100) NOT NULL,
+                    lab_name VARCHAR(100),
+                    description TEXT NOT NULL,
+                    status VARCHAR(50) DEFAULT 'Pending',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+
             conn.commit()
-            print("✅ Database connection successful!")
+            print("Database connection successful!")
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        print(f"Database connection failed: {e}")
 
 # Data Model
+class NoticeCreate(BaseModel):
+    title: str
+    body: str
+    posted_by: str = ""
+
+class ComplaintCreate(BaseModel):
+    student_name: str
+    student_email: str
+    department: str
+    lab_assistant_name: str
+    lab_name: str
+    description: str
+
 class RegisterData(BaseModel):
     name: str
     email: str
@@ -274,9 +321,16 @@ def register(data: RegisterData):
             )
         elif data.role.lower() == "admin" or data.role.lower() == "hod":
             admin_role = "hod" if data.role.lower() == "hod" else "superadmin"
+            # Map full department name to field code
+            field_name = "IT"
+            if "Electrical" in data.department:
+                field_name = "Electrical"
+            elif "Computer" in data.department or "Information Technology" in data.department:
+                field_name = "IT"
+
             conn.execute(
-                text("INSERT INTO admins (name, email, password, admin_role, department, mobile) VALUES (:name, :email, :password, :role, :dept, :mobile)"),
-                {"name": data.name, "email": data.email, "password": hashed_password, "role": admin_role, "dept": data.department, "mobile": data.mobile}
+                text("INSERT INTO admins (name, email, password, admin_role, department, mobile, field_name) VALUES (:name, :email, :password, :role, :dept, :mobile, :field)"),
+                {"name": data.name, "email": data.email, "password": hashed_password, "role": admin_role, "dept": data.department, "mobile": data.mobile, "field": field_name}
             )
         else:
             raise HTTPException(status_code=400, detail="Invalid role specified")
@@ -450,23 +504,50 @@ def update_profile(data: ProfileUpdate):
 
 
 
-# Health Check / Auto Escalation Logic
-def check_and_escalate_issues():
+# Health Check / Auto Escalation & Confirmation Logic
+def check_and_run_background_tasks():
     try:
         with engine.connect() as conn:
-            # Find issues > 10 days old, not completed, not already escalated
+            # 1. Escalation: Find issues > 10 days old, not completed, not already escalated
             conn.execute(
                 text("""
                     UPDATE issues 
                     SET is_escalated = TRUE, escalated_at = CURRENT_TIMESTAMP
                     WHERE created_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 10 DAY)
-                      AND status != 'Completed'
+                      AND status NOT IN ('Completed', 'Resolved')
                       AND is_escalated = FALSE
                 """)
             )
+            
+            # 2. Auto-Confirmation: Find issues Resolved > 2 days ago
+            expired_resolved = conn.execute(
+                text("""
+                    SELECT id, equipment_name FROM issues 
+                    WHERE status = 'Resolved' 
+                      AND resolved_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 DAY)
+                      AND user_confirmed = FALSE
+                """)
+            ).fetchall()
+            
+            for row in expired_resolved:
+                issue_id = row[0]
+                eq_name = row[1]
+                
+                # Update status to Completed
+                conn.execute(
+                    text("UPDATE issues SET status='Completed', user_confirmed=TRUE WHERE id=:id"),
+                    {"id": issue_id}
+                )
+                
+                # Notify Admin of automatic completion
+                conn.execute(
+                    text("INSERT INTO notifications (target_role, message, issue_id) VALUES ('admin', :msg, :iid)"),
+                    {"msg": f"Issue #ISS-{issue_id} ({eq_name}) automatically confirmed after 2 days.", "iid": issue_id}
+                )
+                
             conn.commit()
     except Exception as e:
-        print(f"Escalation Check Error: {e}")
+        print(f"Background Tasks Error: {e}")
 
 # Issues APIs
 @app.post("/issues")
@@ -655,7 +736,7 @@ def delete_issue(issue_id: int):
 
 @app.get("/issues")
 def get_issues(field: str = None, admin_role: str = None, dept: str = None):
-    check_and_escalate_issues() # Run escalation check on every fetch
+    check_and_run_background_tasks() # Run background checks on every fetch
     try:
         with engine.connect() as conn:
             query = "SELECT * FROM issues WHERE 1=1"
@@ -805,6 +886,19 @@ def update_issue_status(issue_id: int, data: IssueStatusUpdate):
                 }
             )
 
+            # If status is being set to "Resolved", record the time and reset user_confirmed
+            if data.status == "Resolved":
+                conn.execute(
+                    text("UPDATE issues SET user_confirmed = FALSE, resolved_at = CURRENT_TIMESTAMP WHERE id = :id"),
+                    {"id": issue_id}
+                )
+            elif data.status != "Completed":
+                # If moving away from Resolved/Completed, clear resolved_at
+                conn.execute(
+                    text("UPDATE issues SET resolved_at = NULL WHERE id = :id"),
+                    {"id": issue_id}
+                )
+
             # Notifications Logic
             if issue:
                 student_email = issue[0]
@@ -844,12 +938,52 @@ def update_issue_status(issue_id: int, data: IssueStatusUpdate):
                     except Exception as e:
                         print(f"Notification Error (Completed Admin): {e}")
 
+                # If technician marks as Resolved (User needs to confirm)
+                elif data.status == "Resolved":
+                    try:
+                        conn.execute(
+                            text("INSERT INTO notifications (target_email, message, issue_id) VALUES (:email, :msg, :iid)"),
+                            {"email": student_email, "msg": f"Technician has fixed {eq_name}. Please confirm and close the request.", "iid": issue_id}
+                        )
+                    except Exception as e:
+                        print(f"Notification Error (Resolved): {e}")
+
             conn.commit()
         return {"message": "Status updated successfully"}
     except Exception as e:
         print(f"Error updating issue status: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+@app.put("/issues/{issue_id}/confirm")
+def confirm_issue(issue_id: int):
+    try:
+        with engine.connect() as conn:
+            # Check if issue exists and is Resolved
+            issue = conn.execute(
+                text("SELECT status FROM issues WHERE id=:id"),
+                {"id": issue_id}
+            ).fetchone()
+            
+            if not issue:
+                raise HTTPException(status_code=404, detail="Issue not found")
+            
+            # Update to Completed and set confirmed flag
+            conn.execute(
+                text("UPDATE issues SET status='Completed', user_confirmed=TRUE WHERE id=:id"),
+                {"id": issue_id}
+            )
+            
+            # Notify Admin of final completion
+            conn.execute(
+                text("INSERT INTO notifications (target_role, message, issue_id) VALUES ('admin', :msg, :iid)"),
+                {"msg": f"User confirmed completion of Issue #ISS-{issue_id}.", "iid": issue_id}
+            )
+            
+            conn.commit()
+            return {"message": "Issue confirmed and closed successfully"}
+    except Exception as e:
+        print(f"Error confirming issue: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 @app.get("/notifications/admin")
 def get_admin_notifications():
     try:
@@ -937,10 +1071,17 @@ def create_equipment(data: EquipmentCreate):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.get("/equipments")
-def get_all_equipments():
+def get_all_equipments(field: Optional[str] = None):
     try:
         with engine.connect() as conn:
-            result = conn.execute(text("SELECT unique_id, equipment_type, lab_name, room_name, equipment_name FROM equipments ORDER BY id DESC"))
+            query = "SELECT unique_id, equipment_type, lab_name, room_name, equipment_name FROM equipments"
+            params = {}
+            if field:
+                query += " WHERE equipment_type = :field"
+                params["field"] = field
+            
+            query += " ORDER BY id DESC"
+            result = conn.execute(text(query), params)
             equipments = []
             for row in result:
                 equipments.append({
@@ -1039,4 +1180,132 @@ def delete_equipment(unique_id: str):
         raise
     except Exception as e:
         print(f"Error deleting equipment: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+# ── NOTICES API ──────────────────────────────────────────────────────────────
+
+@app.post("/notices")
+def create_notice(data: NoticeCreate):
+    try:
+        with engine.connect() as conn:
+            conn.execute(
+                text("INSERT INTO notices (title, body, posted_by) VALUES (:title, :body, :posted_by)"),
+                {"title": data.title, "body": data.body, "posted_by": data.posted_by}
+            )
+            conn.commit()
+        return {"message": "Notice posted successfully"}
+    except Exception as e:
+        print(f"Error posting notice: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@app.get("/notices")
+def get_notices():
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT id, title, body, posted_by, created_at FROM notices ORDER BY created_at DESC"))
+            notices = []
+            for row in result:
+                notices.append({
+                    "id": row[0],
+                    "title": row[1],
+                    "body": row[2],
+                    "posted_by": row[3],
+                    "created_at": str(row[4])
+                })
+            return notices
+    except Exception as e:
+        print(f"Error fetching notices: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@app.delete("/notices/{notice_id}")
+def delete_notice(notice_id: int):
+    try:
+        with engine.connect() as conn:
+            existing = conn.execute(
+                text("SELECT id FROM notices WHERE id=:id"), {"id": notice_id}
+            ).fetchone()
+            if not existing:
+                raise HTTPException(status_code=404, detail="Notice not found")
+            conn.execute(text("DELETE FROM notices WHERE id=:id"), {"id": notice_id})
+            conn.commit()
+        return {"message": "Notice deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting notice: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+# ── COMPLAINTS API ──────────────────────────────────────────────────────────
+
+@app.post("/complaints")
+def submit_complaint(data: ComplaintCreate):
+    try:
+        with engine.connect() as conn:
+            conn.execute(
+                text("""
+                    INSERT INTO complaints (student_name, student_email, department, lab_assistant_name, lab_name, description) 
+                    VALUES (:s_name, :s_email, :dept, :la_name, :lab, :desc)
+                """),
+                {
+                    "s_name": data.student_name,
+                    "s_email": data.student_email,
+                    "dept": data.department,
+                    "la_name": data.lab_assistant_name,
+                    "lab": data.lab_name,
+                    "desc": data.description
+                }
+            )
+            conn.commit()
+        return {"message": "Complaint submitted successfully"}
+    except Exception as e:
+        print(f"Error submitting complaint: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@app.get("/complaints")
+def get_complaints(department: str = None):
+    try:
+        with engine.connect() as conn:
+            query = "SELECT id, student_name, student_email, department, lab_assistant_name, lab_name, description, status, created_at FROM complaints"
+            params = {}
+            if department:
+                query += " WHERE department = :dept"
+                params["dept"] = department
+            
+            query += " ORDER BY created_at DESC"
+            
+            result = conn.execute(text(query), params)
+            complaints = []
+            for row in result:
+                complaints.append({
+                    "id": row[0],
+                    "student_name": row[1],
+                    "student_email": row[2],
+                    "department": row[3],
+                    "lab_assistant_name": row[4],
+                    "lab_name": row[5],
+                    "description": row[6],
+                    "status": row[7],
+                    "created_at": str(row[8])
+                })
+            return complaints
+    except Exception as e:
+        print(f"Error fetching complaints: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@app.delete("/complaints/{complaint_id}")
+def delete_complaint(complaint_id: int):
+    try:
+        with engine.connect() as conn:
+            existing = conn.execute(
+                text("SELECT id FROM complaints WHERE id=:id"), {"id": complaint_id}
+            ).fetchone()
+            if not existing:
+                raise HTTPException(status_code=404, detail="Complaint not found")
+            conn.execute(text("DELETE FROM complaints WHERE id=:id"), {"id": complaint_id})
+            conn.commit()
+        return {"message": "Complaint deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting complaint: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
