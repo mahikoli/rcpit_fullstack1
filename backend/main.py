@@ -638,7 +638,7 @@ def create_issue(data: IssueCreate):
                     "issue_subtype": data.issue_subtype,
                     "dept": data.student_dept
                 }
-             RETURNING id
+             
                 )
             
             new_issue_id = result.fetchone()[0]
