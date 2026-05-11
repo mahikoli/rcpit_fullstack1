@@ -49,7 +49,7 @@ def test_db_connection():
             # Auto-create equipments table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS equipments (
-                    id INT SERIAL PRIMARY KEY,
+                    id  SERIAL PRIMARY KEY,
                     unique_id VARCHAR(100) UNIQUE NOT NULL,
                     equipment_type VARCHAR(50),
                     lab_name VARCHAR(100),
