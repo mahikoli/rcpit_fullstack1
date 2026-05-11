@@ -60,7 +60,7 @@ def test_db_connection():
             # Auto-create issues table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS issues (
-                    id INT SERIAL PRIMARY KEY,
+                    id  SERIAL PRIMARY KEY,
                     equipment_type VARCHAR(50),
                     lab_name VARCHAR(100),
                     room_name VARCHAR(100),
@@ -86,7 +86,7 @@ def test_db_connection():
             # Create specialized user tables
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS students (
-                    id INT SERIAL PRIMARY KEY,
+                    id  SERIAL PRIMARY KEY,
                     name VARCHAR(100),
                     email VARCHAR(100) UNIQUE,
                     password VARCHAR(255),
@@ -96,7 +96,7 @@ def test_db_connection():
             """))
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS staff (
-                    id INT SERIAL PRIMARY KEY,
+                    id  SERIAL PRIMARY KEY,
                     name VARCHAR(100),
                     email VARCHAR(100) UNIQUE,
                     password VARCHAR(255),
@@ -108,7 +108,7 @@ def test_db_connection():
             """))
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS admins (
-                    id INT SERIAL PRIMARY KEY,
+                    id  SERIAL PRIMARY KEY,
                     name VARCHAR(100),
                     email VARCHAR(100) UNIQUE,
                     password VARCHAR(255),
@@ -178,7 +178,7 @@ def test_db_connection():
             # Auto-create notifications table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS notifications (
-                    id INT SERIAL PRIMARY KEY,
+                    id  SERIAL PRIMARY KEY,
                     target_role VARCHAR(50) NULL,
                     target_email VARCHAR(100) NULL,
                     message TEXT,
@@ -191,7 +191,7 @@ def test_db_connection():
             # Auto-create notices table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS notices (
-                    id INT SERIAL PRIMARY KEY,
+                    id  SERIAL PRIMARY KEY,
                     title VARCHAR(255) NOT NULL,
                     body TEXT NOT NULL,
                     posted_by VARCHAR(100) NULL,
@@ -202,7 +202,7 @@ def test_db_connection():
             # Auto-create complaints table
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS complaints (
-                    id INT SERIAL PRIMARY KEY,
+                    id  SERIAL PRIMARY KEY,
                     student_name VARCHAR(100),
                     student_email VARCHAR(100),
                     department VARCHAR(100),
