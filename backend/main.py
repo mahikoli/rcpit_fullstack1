@@ -1,15 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt
 import bcrypt
 import os
-from dotenv import load_dotenv
-import psycopg2
-# Load environment variables
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+from db import engine, init_db
+
 # Create FastAPI app
 app = FastAPI()
 
@@ -21,203 +19,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# MySQL Connection
+# Configuration
 SECRET_KEY = os.getenv("SECRET_KEY")
-DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not SECRET_KEY:
     raise Exception("SECRET_KEY not found in .env file")
 
-if not DATABASE_URL:
-    raise Exception("DATABASE_URL not found in .env file")
-
-try:
-    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-except Exception as e:
-    print(f"Could not create database engine: {e}")
-    raise
-
 # Test Connection on Startup
 @app.on_event("startup")
 def startup_event():
-    test_db_connection()
-
-def test_db_connection():
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-            # Auto-create equipments table
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS equipments (
-                    id  SERIAL PRIMARY KEY,
-                    unique_id VARCHAR(100) UNIQUE NOT NULL,
-                    equipment_type VARCHAR(50),
-                    lab_name VARCHAR(100),
-                    room_name VARCHAR(100),
-                    equipment_name VARCHAR(100)
-                )
-            """))
-            # Auto-create issues table
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS issues (
-                    id  SERIAL PRIMARY KEY,
-                    equipment_type VARCHAR(50),
-                    lab_name VARCHAR(100),
-                    room_name VARCHAR(100),
-                    equipment_name VARCHAR(100),
-                    equipment_id VARCHAR(100),
-                    description TEXT,
-                    user_name VARCHAR(100),
-                    email VARCHAR(100),
-                    prn VARCHAR(100),
-                    status VARCHAR(50) DEFAULT 'Pending',
-                    priority VARCHAR(50) DEFAULT 'Medium',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    technician_id INT NULL,
-                    technician_name VARCHAR(100) NULL,
-                    estimated_days VARCHAR(50) NULL,
-                    technician_comment TEXT NULL,
-                    issue_subtype VARCHAR(100) NULL,
-                    user_confirmed BOOLEAN DEFAULT FALSE,
-                    resolved_at TIMESTAMP NULL
-                )
-            """))
-            
-            # Create specialized user tables
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS students (
-                    id  SERIAL PRIMARY KEY,
-                    name VARCHAR(100),
-                    email VARCHAR(100) UNIQUE,
-                    password VARCHAR(255),
-                    mobile VARCHAR(15),
-                    year VARCHAR(50)
-                )
-            """))
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS staff (
-                    id  SERIAL PRIMARY KEY,
-                    name VARCHAR(100),
-                    email VARCHAR(100) UNIQUE,
-                    password VARCHAR(255),
-                    mobile VARCHAR(15),
-                    qualification VARCHAR(100),
-                    lab_name VARCHAR(100),
-                    room_number VARCHAR(100)
-                )
-            """))
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS admins (
-                    id  SERIAL PRIMARY KEY,
-                    name VARCHAR(100),
-                    email VARCHAR(100) UNIQUE,
-                    password VARCHAR(255),
-                    field_name VARCHAR(50) DEFAULT 'IT'
-                )
-            """))
-
-            # Ensure new columns exist for existing tables
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN technician_id INT NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN technician_name VARCHAR(100) NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN estimated_days VARCHAR(50) NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN technician_comment TEXT NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE admins ADD COLUMN field_name VARCHAR(50) DEFAULT 'IT'"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN issue_subtype VARCHAR(100) NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN reporter_count INT DEFAULT 1"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN reporter_emails TEXT NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE admins ADD COLUMN admin_role VARCHAR(50) DEFAULT 'superadmin'"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE admins ADD COLUMN department VARCHAR(100) NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE students ADD COLUMN department VARCHAR(100) DEFAULT 'IT'"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN student_dept VARCHAR(100) DEFAULT 'IT'"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN is_escalated BOOLEAN DEFAULT FALSE"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN escalated_at TIMESTAMP NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE admins ADD COLUMN mobile VARCHAR(20) NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE staff ADD COLUMN field_name VARCHAR(50) DEFAULT 'IT'"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE staff ADD COLUMN department VARCHAR(100) NULL"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN user_confirmed BOOLEAN DEFAULT FALSE"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN resolved_at TIMESTAMP NULL"))
-            except Exception: pass
-
-            # Auto-create notifications table
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS notifications (
-                    id  SERIAL PRIMARY KEY,
-                    target_role VARCHAR(50) NULL,
-                    target_email VARCHAR(100) NULL,
-                    message TEXT,
-                    issue_id INT,
-                    is_read BOOLEAN DEFAULT FALSE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """))
-
-            # Auto-create notices table
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS notices (
-                    id  SERIAL PRIMARY KEY,
-                    title VARCHAR(255) NOT NULL,
-                    body TEXT NOT NULL,
-                    posted_by VARCHAR(100) NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """))
-
-            # Auto-create complaints table
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS complaints (
-                    id  SERIAL PRIMARY KEY,
-                    student_name VARCHAR(100),
-                    student_email VARCHAR(100),
-                    department VARCHAR(100),
-                    lab_assistant_name VARCHAR(100) NOT NULL,
-                    lab_name VARCHAR(100),
-                    description TEXT NOT NULL,
-                    status VARCHAR(50) DEFAULT 'Pending',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """))
-
-            conn.commit()
-            print("Database connection successful!")
-    except Exception as e:
-        print(f"Database connection failed: {e}")
+    init_db()
 
 # Data Model
 class NoticeCreate(BaseModel):
@@ -509,7 +320,7 @@ def check_and_run_background_tasks():
                 text("""
                     UPDATE issues 
                     SET is_escalated = TRUE, escalated_at = CURRENT_TIMESTAMP
-                    WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '10 days'
+                    WHERE created_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 10 DAY)
                       AND status NOT IN ('Completed', 'Resolved')
                       AND is_escalated = FALSE
                 """)
@@ -520,7 +331,7 @@ def check_and_run_background_tasks():
                 text("""
                     SELECT id, equipment_name FROM issues 
                     WHERE status = 'Resolved' 
-                      AND resolved_at < CURRENT_TIMESTAMP - INTERVAL '2 days'
+                      AND resolved_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 DAY)
                       AND user_confirmed = FALSE
                 """)
             ).fetchall()
@@ -638,10 +449,9 @@ def create_issue(data: IssueCreate):
                     "issue_subtype": data.issue_subtype,
                     "dept": data.student_dept
                 }
-             
-                )
+            )
             
-            new_issue_id = result.fetchone()[0]
+            new_issue_id = result.lastrowid
             
             # 4. Create notification for the auto-assigned technician
             if tech_email:
