@@ -1,6 +1,6 @@
 import { useState } from "react"
 import Navbar from "../components/Navbar"
-import InputField from "../components/InputField"
+import InputField from "../components/InputField.jsx"
 import Button from "../components/Button"
 
 function AddEquipment(){
