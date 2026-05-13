@@ -1,4 +1,4 @@
-function InputField({type, placeholder, value, onChange}){
+function inputField({type, placeholder, value, onChange}){
 
   return(
 
@@ -14,4 +14,4 @@ function InputField({type, placeholder, value, onChange}){
 
 }
 
-export default InputField
+export default inputField
