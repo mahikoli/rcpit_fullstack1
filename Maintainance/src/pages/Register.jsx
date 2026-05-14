@@ -41,6 +41,25 @@ export default function Register() {
       return;
     }
 
+    if (role === "hod") {
+      const authorizedHodEmails = [
+        "hodcomp@rcpit.ac.in",
+        "hodetc@rcpit.ac.in",
+        "hodmech@rcpit.ac.in",
+        "hodelect@rcpit.ac.in",
+        "shailaja.patil@rcpit.ac.in",
+        "hodcivil@rcpit.ac.in",
+        "ujwala.patil@rcpit.ac.in",
+        "hodaids@rcpit.ac.in",
+        "hodit@rcpit.ac.in",
+        "satish.desale@rcpit.ac.in"
+      ];
+      if (!authorizedHodEmails.includes(formData.email.toLowerCase())) {
+        alert("Your email is not authorized for HOD registration. Please contact the administrator.");
+        return;
+      }
+    }
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
         method: "POST",

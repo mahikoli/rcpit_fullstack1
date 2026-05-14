@@ -167,6 +167,11 @@ def init_db():
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_issues_created_at ON issues (created_at)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notifications_target_role ON notifications (target_role)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notifications_target_email ON notifications (target_email)"))
+            
+            # User Table Email Indexes
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_students_email ON students (email)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_staff_email ON staff (email)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email)"))
 
             conn.commit()
 

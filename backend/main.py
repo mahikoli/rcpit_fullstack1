@@ -26,6 +26,19 @@ app.add_middleware(
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY")
 
+AUTHORIZED_HOD_EMAILS = [
+    "hodcomp@rcpit.ac.in",
+    "hodetc@rcpit.ac.in",
+    "hodmech@rcpit.ac.in",
+    "hodelect@rcpit.ac.in",
+    "shailaja.patil@rcpit.ac.in",
+    "hodcivil@rcpit.ac.in",
+    "ujwala.patil@rcpit.ac.in",
+    "hodaids@rcpit.ac.in",
+    "hodit@rcpit.ac.in",
+    "satish.desale@rcpit.ac.in"
+]
+
 if not SECRET_KEY:
     raise Exception("SECRET_KEY not found in .env file")
 
@@ -71,6 +84,12 @@ def register(data: RegisterData):
             )
         elif data.role.lower() == "admin" or data.role.lower() == "hod":
             admin_role = "hod" if data.role.lower() == "hod" else "superadmin"
+            
+            # Restrict HOD registration to authorized emails
+            if admin_role == "hod":
+                if data.email.lower() not in [email.lower() for email in AUTHORIZED_HOD_EMAILS]:
+                    raise HTTPException(status_code=403, detail="Your email is not authorized for HOD registration.")
+
             # Map full department name to field code
             field_name = "IT"
             if "Electrical" in data.department:
@@ -94,58 +113,40 @@ def register(data: RegisterData):
 @app.post("/login")
 def login(data: LoginData):
     with engine.connect() as conn:
-        user = None
-        role = ""
-        field_name = None
-        admin_role = None
-        department = None
-        mobile = None
-        year = None
-        qualification = None
-        lab_name = None
-        room_number = None
+        # Optimized Login: Search all tables in a single query using UNION
+        # Column mapping: 0:id, 1:name, 2:email, 3:password, 4:field_name, 5:admin_role, 6:department, 7:mobile, 8:origin, 9:qual, 10:lab, 11:room, 12:year
+        query = text("""
+            SELECT id, name, email, password, field_name, admin_role, department, mobile, 'admin' as origin, NULL as qualification, NULL as lab_name, NULL as room_number, NULL as year FROM admins WHERE email = :email
+            UNION ALL
+            SELECT id, name, email, password, field_name, 'staff' as admin_role, department, mobile, 'staff' as origin, qualification, lab_name, room_number, NULL as year FROM staff WHERE email = :email
+            UNION ALL
+            SELECT id, name, email, password, NULL as field_name, 'user' as admin_role, department, mobile, 'students' as origin, NULL as qualification, NULL as lab_name, NULL as room_number, year FROM students WHERE email = :email
+            LIMIT 1
+        """)
         
-        # Search across all tables
-        # Check Admins
-        res = conn.execute(text("SELECT id, name, email, password, field_name, admin_role, department, mobile FROM admins WHERE email=:email"), {"email": data.email}).fetchone()
-        if res:
-            user = res
-            role = "admin"
-            field_name = res[4]
-            admin_role = res[5]
-            department = res[6]
-            mobile = res[7]
+        user_row = conn.execute(query, {"email": data.email}).fetchone()
         
-        # Check Staff if not found in admins
-        if not user:
-            res = conn.execute(text("SELECT id, name, email, password, field_name, department, mobile, qualification, lab_name, room_number FROM staff WHERE email=:email"), {"email": data.email}).fetchone()
-            if res:
-                user = res
-                role = "staff"
-                field_name = res[4]
-                admin_role = "staff"
-                department = res[5]
-                mobile = res[6]
-                qualification = res[7]
-                lab_name = res[8]
-                room_number = res[9]
-        
-        # Check Students if not found in staff/admins
-        if not user:
-            res = conn.execute(text("SELECT id, name, email, password, department, mobile, year FROM students WHERE email=:email"), {"email": data.email}).fetchone()
-            if res:
-                user = res
-                role = "User"
-                admin_role = "user"
-                department = res[4]
-                mobile = res[5]
-                year = res[6]
-        
-
-        if not user:
+        if not user_row:
             raise HTTPException(status_code=400, detail="Invalid Email")
 
-        stored_password = user[3] # password is 4th col (idx 3)
+        # Map results
+        user_id, name, email, stored_password, field_name, admin_role_db, department, mobile, origin, qualification, lab_name, room_number, year = user_row
+        
+        # Restrict HOD login to authorized emails
+        if admin_role_db == "hod":
+            if email.lower() not in [e.lower() for e in AUTHORIZED_HOD_EMAILS]:
+                raise HTTPException(status_code=403, detail="This HOD account is not authorized.")
+
+        # Determine frontend role
+        if origin == "admin":
+            role = "admin"
+            admin_role = admin_role_db
+        elif origin == "staff":
+            role = "staff"
+            admin_role = "staff"
+        else:
+            role = "User"
+            admin_role = "user"
 
         try:
             # Add a check for valid bcrypt hash format to prevent 500 on malformed input (e.g. plain text)
@@ -167,9 +168,9 @@ def login(data: LoginData):
             "message": "Login successful", 
             "token": token, 
             "role": role, 
-            "user_id": user[0], 
-            "user_name": user[1],
-            "user_email": user[2],
+            "user_id": user_id, 
+            "user_name": name,
+            "user_email": email,
             "user_mobile": mobile,
             "field_name": field_name,
             "admin_role": admin_role,
