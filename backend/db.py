@@ -161,6 +161,13 @@ def init_db():
                 )
             """))
 
+            # Indexes for Performance
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_issues_status ON issues (status)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_issues_lab_name ON issues (lab_name)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_issues_created_at ON issues (created_at)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notifications_target_role ON notifications (target_role)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notifications_target_email ON notifications (target_email)"))
+
             conn.commit()
 
             print("PostgreSQL / Supabase database initialized successfully!")

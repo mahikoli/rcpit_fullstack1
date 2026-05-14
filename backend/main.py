@@ -1,6 +1,10 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from typing import Optional
+from model import (
+    NoticeCreate, ComplaintCreate, RegisterData, EquipmentCreate, 
+    IssueCreate, IssueAssign, IssueStatusUpdate, NotificationResponse, 
+    LoginData, ProfileUpdate
+)
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt
@@ -30,67 +34,6 @@ if not SECRET_KEY:
 def startup_event():
     init_db()
 
-# Data Model
-class NoticeCreate(BaseModel):
-    title: str
-    body: str
-    posted_by: str = ""
-
-class ComplaintCreate(BaseModel):
-    student_name: str
-    student_email: str
-    department: str
-    lab_assistant_name: str
-    lab_name: str
-    description: str
-
-class RegisterData(BaseModel):
-    name: str
-    email: str
-    password: str
-    mobile: str = ""
-    role: str
-    year: str = ""
-    qualification: str = ""
-    lab_name: str = ""
-    room_number: str = ""
-    department: str = "IT"
-
-class EquipmentCreate(BaseModel):
-    unique_id: str
-    equipment_type: str
-    lab_name: str
-    room_name: str
-    equipment_name: str
-
-class IssueCreate(BaseModel):
-    equipment_type: str
-    lab_name: str
-    room_name: str
-    equipment_name: str
-    equipment_id: str
-    description: str
-    user_name: str
-    email: str
-    prn: str
-    issue_subtype: str = ""
-    student_dept: str = "IT"
-
-class IssueAssign(BaseModel):
-    technician_id: int
-    technician_name: str
-
-class IssueStatusUpdate(BaseModel):
-    status: str
-    estimated_days: str = ""
-    comment: str = ""
-
-class NotificationResponse(BaseModel):
-    id: int
-    message: str
-    issue_id: int
-    is_read: bool
-    created_at: str
 
 @app.options("/{full_path:path}")
 async def preflight_handler(full_path: str):
@@ -147,20 +90,6 @@ def register(data: RegisterData):
     return {"message": "User registered successfully"}
 
 
-class LoginData(BaseModel):
-    email: str
-    password: str
-
-class ProfileUpdate(BaseModel):
-    email: str
-    role: str
-    name: Optional[str] = None
-    mobile: Optional[str] = None
-    department: Optional[str] = None
-    qualification: Optional[str] = None
-    lab_name: Optional[str] = None
-    room_number: Optional[str] = None
-    year: Optional[str] = None
 
 @app.post("/login")
 def login(data: LoginData):
@@ -311,47 +240,47 @@ def update_profile(data: ProfileUpdate):
 
 
 
-# Health Check / Auto Escalation & Confirmation Logic
+# Health Check / Auto Escalation & Confirmation Logic (Optimized)
 def check_and_run_background_tasks():
     try:
         with engine.connect() as conn:
-            # 1. Escalation: Find issues > 10 days old, not completed, not already escalated
+            # 1. Escalation: Single query update
             conn.execute(
                 text("""
                     UPDATE issues 
                     SET is_escalated = TRUE, escalated_at = CURRENT_TIMESTAMP
-                    WHERE created_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 10 DAY)
+                    WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '10 days'
                       AND status NOT IN ('Completed', 'Resolved')
                       AND is_escalated = FALSE
                 """)
             )
             
-            # 2. Auto-Confirmation: Find issues Resolved > 2 days ago
-            expired_resolved = conn.execute(
+            # 2. Auto-Confirmation & Notifications: Batch processing
+            # First, insert notifications for all issues that will be auto-confirmed
+            conn.execute(
                 text("""
-                    SELECT id, equipment_name FROM issues 
+                    INSERT INTO notifications (target_role, message, issue_id)
+                    SELECT 'admin', 
+                           'Issue #ISS-' || id || ' (' || equipment_name || ') automatically confirmed after 2 days.', 
+                           id
+                    FROM issues 
                     WHERE status = 'Resolved' 
-                      AND resolved_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 DAY)
+                      AND resolved_at < CURRENT_TIMESTAMP - INTERVAL '2 days'
                       AND user_confirmed = FALSE
                 """)
-            ).fetchall()
+            )
             
-            for row in expired_resolved:
-                issue_id = row[0]
-                eq_name = row[1]
-                
-                # Update status to Completed
-                conn.execute(
-                    text("UPDATE issues SET status='Completed', user_confirmed=TRUE WHERE id=:id"),
-                    {"id": issue_id}
-                )
-                
-                # Notify Admin of automatic completion
-                conn.execute(
-                    text("INSERT INTO notifications (target_role, message, issue_id) VALUES ('admin', :msg, :iid)"),
-                    {"msg": f"Issue #ISS-{issue_id} ({eq_name}) automatically confirmed after 2 days.", "iid": issue_id}
-                )
-                
+            # Then, update the issues status in one go
+            conn.execute(
+                text("""
+                    UPDATE issues 
+                    SET status='Completed', user_confirmed=TRUE 
+                    WHERE status = 'Resolved' 
+                      AND resolved_at < CURRENT_TIMESTAMP - INTERVAL '2 days'
+                      AND user_confirmed = FALSE
+                """)
+            )
+            
             conn.commit()
     except Exception as e:
         print(f"Background Tasks Error: {e}")
@@ -542,8 +471,8 @@ def delete_issue(issue_id: int):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.get("/issues")
-def get_issues(field: str = None, admin_role: str = None, dept: str = None):
-    check_and_run_background_tasks() # Run background checks on every fetch
+def get_issues(background_tasks: BackgroundTasks, field: str = None, admin_role: str = None, dept: str = None):
+    background_tasks.add_task(check_and_run_background_tasks) # Run in background
     try:
         with engine.connect() as conn:
             query = "SELECT * FROM issues WHERE 1=1"
