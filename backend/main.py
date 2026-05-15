@@ -159,7 +159,7 @@ def login(data: LoginData):
             raise HTTPException(status_code=400, detail="Invalid Password")
 
         token = jwt.encode(
-            {"user_id": user[0], "role": role},
+            {"user_id": user_id, "role": role},
             SECRET_KEY,
             algorithm="HS256"
         )
