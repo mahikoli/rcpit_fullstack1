@@ -349,12 +349,14 @@ export default function TechnicianDashboard() {
             {/* Stats */}
             <div className="td-stats-grid">
               {stats.map((s) => (
-                <div key={s.label} className={`td-stat-card ${s.cls}`}>
-                  <div className="td-stat-label">{s.label}</div>
-                  <div className="td-stat-value">{s.value}</div>
-                  <div className="td-stat-sub">{s.sub}</div>
-                  <div className="td-stat-icon">{s.icon}</div>
-                </div>
+                <StatCard 
+                  key={s.label} 
+                  label={s.label} 
+                  value={s.value} 
+                  icon={s.icon} 
+                  colorClass={s.cls} 
+                  sub={s.sub} 
+                />
               ))}
             </div>
 

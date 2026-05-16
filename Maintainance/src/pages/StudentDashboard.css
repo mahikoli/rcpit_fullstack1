@@ -725,11 +725,11 @@
   border: 1.5px solid var(--sd-bg);
 }
 
-/* ─── STATS ──────────────────────────────────────────── */
+/* Stats styling now handled by UIComponents.css */
 .sd-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 16px;
   margin-bottom: 24px;
 }
 
@@ -737,62 +737,6 @@
   .sd-stats-grid {
     grid-template-columns: 1fr;
   }
-}
-
-.sd-stat-card {
-  border-radius: 16px;
-  padding: 20px;
-  cursor: pointer;
-  transition: all 0.25s;
-  position: relative;
-  overflow: hidden;
-  border: 1.5px solid transparent;
-  animation: sd-fadeUp 0.35s ease both;
-}
-
-.sd-stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.sd-stat-card.s1 { background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-color: #c4b5fd; animation-delay: 0.05s; }
-.sd-stat-card.s2 { background: linear-gradient(135deg, #dcfce7, #bbf7d0); border-color: #86efac; animation-delay: 0.10s; }
-.sd-stat-card.s3 { background: linear-gradient(135deg, #fef3c7, #fde68a); border-color: #fcd34d; animation-delay: 0.15s; }
-
-.sd-stat-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-
-.s1 .sd-stat-label { color: #6d28d9; }
-.s2 .sd-stat-label { color: #15803d; }
-.s3 .sd-stat-label { color: #b45309; }
-
-.sd-stat-value {
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: -1.5px;
-  line-height: 1;
-}
-
-.s1 .sd-stat-value { color: #5b21b6; }
-.s2 .sd-stat-value { color: #166534; }
-.s3 .sd-stat-value { color: #92400e; }
-
-.sd-stat-sub { font-size: 11px; margin-top: 8px; }
-.s1 .sd-stat-sub { color: #7c3aed; }
-.s2 .sd-stat-sub { color: #16a34a; }
-.s3 .sd-stat-sub { color: #d97706; }
-
-.sd-stat-icon {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  font-size: 26px;
-  opacity: 0.3;
 }
 
 /* ─── CONTENT GRID ───────────────────────────────────── */

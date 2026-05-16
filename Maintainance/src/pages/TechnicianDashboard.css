@@ -237,50 +237,25 @@
   background: var(--td-red); border: 1.5px solid var(--td-bg);
 }
 
-/* Stats */
+/* Stats styling now handled by UIComponents.css */
 .td-stats-grid {
-  display: grid; grid-template-columns: repeat(4,1fr);
-  gap: 14px; margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
 }
 
-.td-stat-card {
-  border-radius: 16px; padding: 20px; cursor: pointer;
-  transition: all 0.25s; position: relative; overflow: hidden;
-  border: 1.5px solid transparent;
-  animation: td-fadeUp 0.35s ease both;
+@media screen and (max-width: 1100px) {
+  .td-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.td-stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-
-.td-stat-card.s1 { background: linear-gradient(135deg,#ede9fe,#ddd6fe); border-color:#c4b5fd; }
-.td-stat-card.s2 { background: linear-gradient(135deg,#fef3c7,#fde68a); border-color:#fcd34d; }
-.td-stat-card.s3 { background: linear-gradient(135deg,#dbeafe,#bfdbfe); border-color:#93c5fd; }
-.td-stat-card.s4 { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-color:#86efac; }
-
-.td-stat-card:nth-child(1){animation-delay:.05s}
-.td-stat-card:nth-child(2){animation-delay:.10s}
-.td-stat-card:nth-child(3){animation-delay:.15s}
-.td-stat-card:nth-child(4){animation-delay:.20s}
-
-.td-stat-label {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
-  text-transform: uppercase; margin-bottom: 10px;
+@media screen and (max-width: 600px) {
+  .td-stats-grid {
+    grid-template-columns: 1fr;
+  }
 }
-
-.s1 .td-stat-label{color:#6d28d9} .s2 .td-stat-label{color:#b45309}
-.s3 .td-stat-label{color:#1d4ed8} .s4 .td-stat-label{color:#15803d}
-
-.td-stat-value { font-size: 34px; font-weight: 800; letter-spacing:-1.5px; line-height:1; }
-
-.s1 .td-stat-value{color:#5b21b6} .s2 .td-stat-value{color:#92400e}
-.s3 .td-stat-value{color:#1e40af} .s4 .td-stat-value{color:#166534}
-
-.td-stat-sub { font-size:11px; margin-top:8px; }
-
-.s1 .td-stat-sub{color:#7c3aed} .s2 .td-stat-sub{color:#d97706}
-.s3 .td-stat-sub{color:#2563eb} .s4 .td-stat-sub{color:#16a34a}
-
-.td-stat-icon { position:absolute; top:16px; right:16px; font-size:24px; opacity:0.3; }
 
 /* Content grid */
 .td-content-grid {

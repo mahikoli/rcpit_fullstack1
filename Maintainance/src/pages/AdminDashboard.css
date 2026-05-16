@@ -486,60 +486,24 @@
   background: var(--ad-red); border: 1.5px solid var(--ad-bg);
 }
 
-/* ─── STAT CARDS ────────────────────────────────────── */
+/* Stats styling now handled by UIComponents.css */
 .ad-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+@media screen and (max-width: 1100px) {
+  .ad-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
 
-
-@media screen and (max-width: 400px) {
+@media screen and (max-width: 600px) {
   .ad-stats-grid {
     grid-template-columns: 1fr;
   }
-}
-
-.ad-stat-card {
-  border-radius: 16px; padding: 20px;
-  cursor: pointer; transition: all 0.25s;
-  position: relative; overflow: hidden;
-  border: 1.5px solid transparent;
-  animation: ad-fadeUp 0.35s ease both;
-}
-
-.ad-stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-}
-
-.ad-stat-card.s1 { background: linear-gradient(135deg,#ede9fe,#ddd6fe); border-color:#c4b5fd; animation-delay:.05s; }
-.ad-stat-card.s2 { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-color:#86efac; animation-delay:.10s; }
-.ad-stat-card.s3 { background: linear-gradient(135deg,#fef3c7,#fde68a); border-color:#fcd34d; animation-delay:.15s; }
-.ad-stat-card.s4 { background: linear-gradient(135deg,#dbeafe,#bfdbfe); border-color:#93c5fd; animation-delay:.20s; }
-
-.ad-stat-label {
-  font-size: 11px; font-weight: 700;
-  letter-spacing: 0.5px; text-transform: uppercase;
-  margin-bottom: 10px;
-}
-
-.s1 .ad-stat-label { color: #6d28d9; }
-.s2 .ad-stat-label { color: #15803d; }
-.s3 .ad-stat-label { color: #b45309; }
-.s4 .ad-stat-label { color: #1d4ed8; }
-
-.ad-stat-value {
-  font-size: 36px; font-weight: 800;
-  letter-spacing: -1.5px; line-height: 1;
-}
-
-.s1 .ad-stat-value { color: #5b21b6; }
-.s2 .ad-stat-value { color: #166534; }
-.s3 .ad-stat-value { color: #92400e; }
-.s4 .ad-stat-value { color: #1e40af; }
-
-.ad-stat-icon {
-  position: absolute; top: 16px; right: 16px;
-  font-size: 26px; opacity: 0.3;
 }
 
 /* ─── CHARTS GRID ───────────────────────────────────── */
