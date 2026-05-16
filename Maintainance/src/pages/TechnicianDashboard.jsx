@@ -1,8 +1,8 @@
-
 import "./TechnicianDashboard.css";
 import collegeLogo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
+import { StatCard, Modal, Badge } from "../components/UIComponents.jsx";
 
 // ─── UTILS ──────────────────────────────────────────────────────────────────
 const TABS = ["All", "Assigned", "In Progress", "Resolved", "Completed"];
@@ -10,6 +10,35 @@ const FILTER_MAP = { All: null, Assigned: "Assigned", "In Progress": "In Progres
 const STATUS_LABEL = { Assigned: "Assigned", "In Progress": "In Progress", Resolved: "Resolved", Completed: "Completed" };
 
 const CIRCUMFERENCE = 2 * Math.PI * 38;
+
+const IssueCard = memo(({ issue, onDetails, onAction, actionLabel, actionType }) => (
+  <div className={`td-issue-card ${issue.priority.toLowerCase()}`}>
+    <div className="td-issue-top">
+      <div>
+        <div className="td-issue-title">{issue.equipment_name}</div>
+        {issue.reporter_count > 1 && (
+          <div className="td-reporter-badge">
+            👥 Reported by {issue.reporter_count} students
+          </div>
+        )}
+      </div>
+      <div className="td-badges-row">
+        <Badge type={issue.priority === 'High' ? 'danger' : 'warn'}>{issue.priority}</Badge>
+        <Badge type={issue.status === 'Completed' ? 'success' : 'info'}>{issue.status}</Badge>
+      </div>
+    </div>
+    <div className="td-issue-meta">
+      <span>📍 {issue.lab_name}, {issue.room_name}</span>
+      <span>🕐 {issue.created_at.split(' ')[0]}</span>
+    </div>
+    <div className="td-issue-actions">
+      <button className="td-chip c1" onClick={() => onDetails(issue)}>🔍 View Details</button>
+      {onAction && (
+        <button className={`td-chip ${actionType}`} onClick={() => onAction(issue.id)}>{actionLabel}</button>
+      )}
+    </div>
+  </div>
+));
 
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
@@ -141,33 +170,34 @@ export default function TechnicianDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filtered =
-    FILTER_MAP[activeTab] === null
-      ? issues
-      : issues.filter((i) => i.status === FILTER_MAP[activeTab]);
+  const { filtered, stats, completionPct, circumference, bars } = useMemo(() => {
+    const filterVal = FILTER_MAP[activeTab];
+    const filteredList = filterVal === null ? issues : issues.filter((i) => i.status === filterVal);
+    
+    const s = [
+      { label: "Assigned",    value: issues.filter(i => i.status === "Assigned").length, sub: "📌 Pending action", icon: "📋", cls: "s1" },
+      { label: "In Progress", value: issues.filter(i => i.status === "In Progress").length, sub: "⚡ Active now",      icon: "⚙️", cls: "s2" },
+      { label: "Resolved",    value: issues.filter(i => i.status === "Resolved").length,    sub: "⏳ Awaiting User",   icon: "⏳", cls: "s3" },
+      { label: "Completed",   value: issues.filter(i => i.status === "Completed").length,   sub: "🎯 Final done",      icon: "✅", cls: "s4" },
+    ];
 
-  // Dynamic Stats
-  const stats = [
-    { label: "Assigned",    value: issues.filter(i => i.status === "Assigned").length, sub: "📌 Pending action", icon: "📋", cls: "s1" },
-    { label: "In Progress", value: issues.filter(i => i.status === "In Progress").length, sub: "⚡ Active now",      icon: "⚙️", cls: "s2" },
-    { label: "Resolved",    value: issues.filter(i => i.status === "Resolved").length,    sub: "⏳ Awaiting User",   icon: "⏳", cls: "s3" },
-    { label: "Completed",   value: issues.filter(i => i.status === "Completed").length,   sub: "🎯 Final done",      icon: "✅", cls: "s4" },
-  ];
+    const highCount = issues.filter(i => i.priority === "High").length;
+    const medCount = issues.filter(i => i.priority === "Medium").length;
+    const lowCount = issues.filter(i => i.priority === "Low").length;
+    const totalCount = issues.length || 1;
 
-  const highCount = issues.filter(i => i.priority === "High").length;
-  const medCount = issues.filter(i => i.priority === "Medium").length;
-  const lowCount = issues.filter(i => i.priority === "Low").length;
-  const totalCount = issues.length || 1;
+    const b = [
+      { label: "High",   pct: (highCount/totalCount)*100, color: "#ef4444", countColor: "#dc2626", count: highCount },
+      { label: "Medium", pct: (medCount/totalCount)*100, color: "#f59e0b", countColor: "#d97706", count: medCount },
+      { label: "Low",    pct: (lowCount/totalCount)*100, color: "#22c55e", countColor: "#16a34a", count: lowCount },
+    ];
 
-  const bars = [
-    { label: "High",   pct: (highCount/totalCount)*100, color: "#ef4444", countColor: "#dc2626", count: highCount },
-    { label: "Medium", pct: (medCount/totalCount)*100, color: "#f59e0b", countColor: "#d97706", count: medCount },
-    { label: "Low",    pct: (lowCount/totalCount)*100, color: "#22c55e", countColor: "#16a34a", count: lowCount },
-  ];
+    const completedCount = issues.filter(i => i.status === "Completed").length;
+    const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const circ = 2 * Math.PI * 38;
 
-  const completedCount = issues.filter(i => i.status === "Completed").length;
-  const completionPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const circumference = 2 * Math.PI * 38;
+    return { filtered: filteredList, stats: s, completionPct: pct, circumference: circ, bars: b };
+  }, [issues, activeTab]);
 
   return (
     <div className="td-wrapper">
@@ -351,43 +381,14 @@ export default function TechnicianDashboard() {
 
                 <div className="td-issues-list">
                   {filtered.map((issue) => (
-                    <div key={issue.id} className={`td-issue-card ${issue.priority.toLowerCase()}`}>
-                      <div className="td-issue-top">
-                        <div>
-                          <div className="td-issue-title">{issue.equipment_name}</div>
-                          {issue.reporter_count > 1 && (
-                            <div className="td-reporter-badge" style={{ fontSize: '10px', color: '#7c3aed', background: '#ede9fe', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginTop: '4px', fontWeight: '700' }}>
-                              👥 Reported by {issue.reporter_count} students
-                            </div>
-                          )}
-                        </div>
-                        <div className="td-badges-row">
-                          <span className={`td-badge priority-${issue.priority.toLowerCase()}`}>{issue.priority}</span>
-                          <span className={`td-badge status-${issue.status.toLowerCase().replace(' ', '')}`}>{issue.status}</span>
-                        </div>
-                      </div>
-                      <div className="td-issue-meta">
-                        <span>📍 {issue.lab_name}, {issue.room_name}</span>
-                        <span>🕐 {issue.created_at.split(' ')[0]}</span>
-                      </div>
-                      <div className="td-issue-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-                        <button 
-                          className="td-chip c1" 
-                          onClick={() => {
-                            setSelectedIssueForDetails(issue);
-                            setDetailsModal(true);
-                          }}
-                        >
-                          🔍 View Details
-                        </button>
-                        {issue.status === 'Assigned' && (
-                          <button className="td-chip c2" onClick={() => updateStatus(issue.id, 'In Progress')}>Start Work</button>
-                        )}
-                        {issue.status === 'In Progress' && (
-                          <button className="td-chip c4" onClick={() => updateStatus(issue.id, 'Resolved')}>Mark Fixed</button>
-                        )}
-                      </div>
-                    </div>
+                    <IssueCard 
+                      key={issue.id} 
+                      issue={issue} 
+                      onDetails={(iss) => { setSelectedIssueForDetails(iss); setDetailsModal(true); }}
+                      onAction={issue.status === 'Assigned' ? (id) => updateStatus(id, 'In Progress') : (issue.status === 'In Progress' ? (id) => updateStatus(id, 'Resolved') : null)}
+                      actionLabel={issue.status === 'Assigned' ? 'Start Work' : 'Mark Fixed'}
+                      actionType={issue.status === 'Assigned' ? 'c2' : 'c4'}
+                    />
                   ))}
                   {filtered.length === 0 && <div className="td-empty-notice">No issues found in this category.</div>}
                 </div>

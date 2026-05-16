@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import "./StudentDashboard.css";
 import collegeLogo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,7 @@ import {
   MapPin, Clock, User, ChevronRight, Cpu, Zap, 
   Info, AlertCircle, CheckCircle, PenTool, ClipboardList, QrCode, Hash
 } from "lucide-react";
+import { StatCard, Modal, Badge } from "../components/UIComponents.jsx";
 
 const NAV_ITEMS = [
   { icon: "⊞", label: "Dashboard",     section: "overview", badge: null, badgeType: "" },
@@ -26,7 +27,7 @@ const CAT_CLASS = {
   Other:    "cat-other",
 };
 
-function IssueCard({ issue, onClick }) {
+const IssueCard = memo(({ issue, onClick }) => {
   const statusLabel = {
     Pending: "Pending",
     Assigned: "Assigned",
@@ -72,145 +73,106 @@ function IssueCard({ issue, onClick }) {
       </div>
     </div>
   );
-}
+});
 
 function IssueDetailModal({ issue, onClose, onDelete, onConfirm }) {
-  if (!issue) return null;
-
-  const statusLabel = {
-    Pending: "Pending",
-    Assigned: "Assigned",
-    "In Progress": "In Progress",
-    Completed: "Resolved"
-  }[issue.status] || issue.status;
-
-  const statusColor = {
-    Pending: "#f59e0b",
-    Assigned: "#3b82f6",
-    "In Progress": "#8b5cf6",
-    Completed: "#16a34a"
-  }[issue.status] || "#64748b";
+  const footer = (
+    <>
+      <button 
+        className="sd-modal-footer-remove" 
+        onClick={() => {
+          if (window.confirm("Are you sure you want to remove this issue report? This action cannot be undone.")) {
+            onDelete(issue.id);
+          }
+        }}
+      >
+        🗑️ Remove Issue
+      </button>
+      <button className="sd-modal-footer-close" onClick={onClose}>Close</button>
+      
+      {issue?.status === 'Resolved' && (
+        <button 
+          className="sd-modal-footer-confirm" 
+          onClick={() => {
+            if (window.confirm("Is the issue fixed? Clicking confirm will officially close this request.")) {
+              onConfirm(issue.id);
+            }
+          }}
+        >
+          ✅ Confirm & Close
+        </button>
+      )}
+    </>
+  );
 
   return (
-    <div className="sd-modal-overlay" onClick={onClose}>
-      <div className="sd-modal-box" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="sd-modal-header">
-          <div className="sd-modal-title-row">
-            <div>
-              <div className="sd-modal-issue-id">{issue.equipment_type}</div>
-              <div className="sd-modal-title">{issue.equipment_name}</div>
-            </div>
-            <button className="sd-modal-close" onClick={onClose}>✕</button>
-          </div>
-          <div className="sd-modal-badges">
-            <span className={`sd-badge cat-${issue.equipment_type?.toLowerCase()}`}>{issue.equipment_type}</span>
-            <span className="sd-badge" style={{ background: statusColor + '22', color: statusColor, border: `1px solid ${statusColor}55` }}>
-              {statusLabel}
-            </span>
+    <Modal 
+      isOpen={!!issue} 
+      onClose={onClose} 
+      title="Issue Details"
+      footer={footer}
+      maxWidth="600px"
+    >
+      <div className="sd-modal-body" style={{ padding: 0 }}>
+        {/* Header Info */}
+        <div style={{ marginBottom: 20 }}>
+          <div className="sd-modal-issue-id">{issue?.equipment_type}</div>
+          <div className="sd-modal-title">{issue?.equipment_name}</div>
+          <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+            <Badge type="info">{issue?.equipment_type}</Badge>
+            <Badge type={issue?.status === 'Completed' ? 'success' : 'warn'}>
+              {issue?.status}
+            </Badge>
           </div>
         </div>
 
-        {/* Body */}
-        <div className="sd-modal-body">
-          {/* Equipment Info */}
-          <div className="sd-modal-section">
-            <div className="sd-modal-section-title">📋 Equipment Details</div>
-            <div className="sd-modal-info-grid">
-              <div className="sd-modal-info-item">
-                <div className="sd-modal-info-label">Lab / Location</div>
-                <div className="sd-modal-info-value">📍 {issue.lab_name}</div>
-              </div>
-              <div className="sd-modal-info-item">
-                <div className="sd-modal-info-label">Room Number</div>
-                <div className="sd-modal-info-value">🚪 {issue.room_name}</div>
-              </div>
-              <div className="sd-modal-info-item">
-                <div className="sd-modal-info-label">Equipment ID</div>
-                <div className="sd-modal-info-value">🔖 {issue.equipment_id || "—"}</div>
-              </div>
-              <div className="sd-modal-info-item">
-                <div className="sd-modal-info-label">Issue Category</div>
-                <div className="sd-modal-info-value">🏷️ {issue.issue_subtype || "General"}</div>
-              </div>
-              <div className="sd-modal-info-item">
-                <div className="sd-modal-info-label">Reported On</div>
-                <div className="sd-modal-info-value">🕐 {new Date(issue.created_at).toLocaleString()}</div>
-              </div>
+        {/* Body Content */}
+        <div className="sd-modal-section">
+          <div className="sd-modal-section-title">📋 Equipment Details</div>
+          <div className="sd-modal-info-grid">
+            <div className="sd-modal-info-item">
+              <div className="sd-modal-info-label">Lab / Location</div>
+              <div className="sd-modal-info-value">📍 {issue?.lab_name}</div>
+            </div>
+            <div className="sd-modal-info-item">
+              <div className="sd-modal-info-label">Room Number</div>
+              <div className="sd-modal-info-value">🚪 {issue?.room_name}</div>
+            </div>
+            <div className="sd-modal-info-item">
+              <div className="sd-modal-info-label">Equipment ID</div>
+              <div className="sd-modal-info-value">🔖 {issue?.equipment_id || "—"}</div>
+            </div>
+            <div className="sd-modal-info-item">
+              <div className="sd-modal-info-label">Issue Category</div>
+              <div className="sd-modal-info-value">🏷️ {issue?.issue_subtype || "General"}</div>
             </div>
           </div>
+        </div>
 
-          {/* Description */}
-          <div className="sd-modal-section">
-            <div className="sd-modal-section-title">📝 Issue Description</div>
-            <div className="sd-modal-description">{issue.description || "No description provided."}</div>
-          </div>
+        <div className="sd-modal-section">
+          <div className="sd-modal-section-title">📝 Issue Description</div>
+          <div className="sd-modal-description">{issue?.description || "No description provided."}</div>
+        </div>
 
-          {/* Technician Info */}
+        {issue?.technician_name && (
           <div className="sd-modal-section">
             <div className="sd-modal-section-title">🔧 Technician Info</div>
-            {issue.technician_name ? (
-              <div className="sd-modal-info-grid">
-                <div className="sd-modal-info-item">
-                  <div className="sd-modal-info-label">Assigned To</div>
-                  <div className="sd-modal-info-value">👷 {issue.technician_name}</div>
-                </div>
-                <div className="sd-modal-info-item">
-                  <div className="sd-modal-info-label">Estimated Days</div>
-                  <div className="sd-modal-info-value est-days">
-                    {issue.estimated_days
-                      ? <><span className="sd-days-badge">{issue.estimated_days}</span> days to resolve</>
-                      : <span style={{ color: 'var(--sd-muted)' }}>Not specified yet</span>
-                    }
-                  </div>
-                </div>
+            <div className="sd-modal-info-grid">
+              <div className="sd-modal-info-item">
+                <div className="sd-modal-info-label">Assigned To</div>
+                <div className="sd-modal-info-value">👷 {issue.technician_name}</div>
               </div>
-            ) : (
-              <div className="sd-modal-unassigned">⏳ No technician assigned yet. Please wait.</div>
-            )}
-          </div>
-
-          {/* Technician Comment */}
-          {issue.technician_comment && (
-            <div className="sd-modal-section">
-              <div className="sd-modal-section-title">💬 Technician Note</div>
-              <div className="sd-modal-comment-box">
-                <div className="sd-modal-comment-icon">💬</div>
-                <div className="sd-modal-comment-text">{issue.technician_comment}</div>
-              </div>
+              {issue.technician_comment && (
+                <div className="sd-modal-info-item" style={{ gridColumn: '1 / -1' }}>
+                  <div className="sd-modal-info-label">Technician Note</div>
+                  <div className="sd-modal-comment-box">{issue.technician_comment}</div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="sd-modal-footer">
-          <button 
-            className="sd-modal-footer-remove" 
-            onClick={() => {
-              if (window.confirm("Are you sure you want to remove this issue report? This action cannot be undone.")) {
-                onDelete(issue.id);
-              }
-            }}
-          >
-            🗑️ Remove Issue
-          </button>
-          <button className="sd-modal-footer-close" onClick={onClose}>Close</button>
-          
-          {issue.status === 'Resolved' && (
-            <button 
-              className="sd-modal-footer-confirm" 
-              onClick={() => {
-                if (window.confirm("Is the issue fixed? Clicking confirm will officially close this request.")) {
-                  onConfirm(issue.id);
-                }
-              }}
-            >
-              ✅ Confirm & Close
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -230,33 +192,24 @@ function DashboardPage({
   notices
 }) {
   const [filter, setFilter] = useState("all");
-  const filtered = filter === "all" ? issues : issues.filter((i) => i.status === filter);
   
-  const displayedIssues = filtered.filter(i => 
-    !searchQuery || (i.equipment_id && i.equipment_id.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const displayedIssues = useMemo(() => {
+    let filtered = filter === "all" ? issues : issues.filter((i) => i.status === filter);
+    if (searchQuery) {
+      filtered = filtered.filter(i => 
+        (i.equipment_id && i.equipment_id.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (i.equipment_name && i.equipment_name.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+    return filtered.slice(0, 10); // Only show top 10 for dashboard performance
+  }, [issues, filter, searchQuery]);
 
   return (
     <>
       <div className="sd-stats-grid">
-        <div className="sd-stat-card s1">
-          <div className="sd-stat-icon">📋</div>
-          <div className="sd-stat-label">Total Issues</div>
-          <div className="sd-stat-value">{totalIssues}</div>
-          <div className="sd-stat-sub">📌 All reported</div>
-        </div>
-        <div className="sd-stat-card s2">
-          <div className="sd-stat-icon">✅</div>
-          <div className="sd-stat-label">Solved Issues</div>
-          <div className="sd-stat-value">{solvedIssues}</div>
-          <div className="sd-stat-sub">🎯 Resolved this week</div>
-        </div>
-        <div className="sd-stat-card s3">
-          <div className="sd-stat-icon">⏳</div>
-          <div className="sd-stat-label">Pending Issues</div>
-          <div className="sd-stat-value">{pendingIssues}</div>
-          <div className="sd-stat-sub">⚡ Awaiting action</div>
-        </div>
+        <StatCard label="Total Issues" value={totalIssues} icon="📋" colorClass="s1" sub="📌 All reported" />
+        <StatCard label="Solved Issues" value={solvedIssues} icon="✅" colorClass="s2" sub="🎯 Resolved so far" />
+        <StatCard label="Pending Issues" value={pendingIssues} icon="⏳" colorClass="s3" sub="⚡ Awaiting action" />
       </div>
 
       <div className="sd-content-grid">
@@ -1131,12 +1084,15 @@ function StudentDashboard() {
     }
   };
 
-  const totalIssues   = issues.length;
-  const solvedIssues  = issues.filter((i) => i.status === "completed" || i.status === "solved").length;
-  const pendingIssues = issues.filter((i) => i.status === "pending").length;
-  const resolvedPct   = Math.round((solvedIssues / totalIssues) * 100);
-  const CIRCUMF       = 2 * Math.PI * 40;
-  const ringOffset    = CIRCUMF - (resolvedPct / 100) * CIRCUMF;
+  const { totalIssues, solvedIssues, pendingIssues, resolvedPct, CIRCUMF, ringOffset } = useMemo(() => {
+    const total = issues.length;
+    const solved = issues.filter((i) => i.status?.toLowerCase() === "completed" || i.status?.toLowerCase() === "solved").length;
+    const pending = issues.filter((i) => i.status?.toLowerCase() === "pending").length;
+    const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
+    const circ = 2 * Math.PI * 40;
+    const offset = circ - (pct / 100) * circ;
+    return { totalIssues: total, solvedIssues: solved, pendingIssues: pending, resolvedPct: pct, CIRCUMF: circ, ringOffset: offset };
+  }, [issues]);
 
   const navSections   = ["overview", "actions", "more"];
   const sectionLabels = { overview: "Overview", actions: "Actions", more: "More" };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
 import collegeLogo from "../assets/logo.png";
@@ -6,6 +6,7 @@ import {
   PieChart, Pie, Cell, Tooltip, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer
 } from "recharts";
+import { StatCard, Modal, Badge } from "../components/UIComponents.jsx";
 
 // Real technicians will be fetched from the API
 const PIE_COLORS = ["#f59e0b", "#7c3aed", "#2563eb", "#16a34a"];
@@ -24,15 +25,23 @@ const NAV_ITEMS = [
 const PRIORITY_CLASS = { High: "priority-high", Medium: "priority-medium", Low: "priority-low" };
 const STATUS_CLASS   = { Pending: "status-pending", Assigned: "status-assigned", "In Progress": "status-inprogress", Completed: "status-completed" };
 
-function StatCard({ label, value, icon, colorClass }) {
-  return (
-    <div className={`ad-stat-card ${colorClass}`}>
-      <div className="ad-stat-icon">{icon}</div>
-      <div className="ad-stat-label">{label}</div>
-      <div className="ad-stat-value">{value}</div>
-    </div>
-  );
-}
+const IssueRow = memo(({ issue }) => (
+  <tr className={issue.isEscalated ? "row-escalated" : ""}>
+    <td>
+      <span className="ad-issue-id">{issue.id}</span>
+      {issue.isEscalated && <div className="escalated-tag">🔥 Escalated</div>}
+    </td>
+    <td><span className="ad-eq-name">{issue.equipment}</span></td>
+    <td><span className="ad-category">🏷️ {issue.category}</span></td>
+    <td><span className="ad-location">📍 {issue.location}</span></td>
+    <td><Badge type={issue.priority === 'High' ? 'danger' : (issue.priority === 'Medium' ? 'warn' : 'info')}>{issue.priority}</Badge></td>
+    <td className="ad-date">{issue.date}</td>
+    <td><Badge type={issue.status === 'Completed' ? 'success' : 'warn'}>{issue.status}</Badge></td>
+    <td className="ad-tech">{issue.technician || <span className="ad-unassigned">Not Assigned</span>}</td>
+  </tr>
+));
+
+// StatCard is now imported from UIComponents
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -372,37 +381,40 @@ function AdminDashboard() {
   }
 
   // Dynamic Stats
-  const totalReports      = issues.length;
-  const pendingReports    = issues.filter(i => i.status === "Pending").length;
-  const underMaintenance  = issues.filter(i => i.status === "In Progress" || i.status === "Assigned").length;
-  const completedReports  = issues.filter(i => i.status === "Completed" || i.status === "Solved").length;
+  const { totalReports, pendingReports, underMaintenance, completedReports, pieData, last7Days, recentActivities } = useMemo(() => {
+    const total = issues.length;
+    const pending = issues.filter(i => i.status === "Pending").length;
+    const maintenance = issues.filter(i => i.status === "In Progress" || i.status === "Assigned").length;
+    const completed = issues.filter(i => i.status === "Completed" || i.status === "Solved").length;
 
-  // Dynamic Pie Data
-  const pieData = [
-    { name: "Pending",     value: pendingReports },
-    { name: "Assigned",    value: issues.filter(i => i.status === "Assigned").length },
-    { name: "In Progress", value: issues.filter(i => i.status === "In Progress").length },
-    { name: "Completed",   value: completedReports },
-  ].filter(d => d.value > 0);
+    const pie = [
+      { name: "Pending",     value: pending },
+      { name: "Assigned",    value: issues.filter(i => i.status === "Assigned").length },
+      { name: "In Progress", value: issues.filter(i => i.status === "In Progress").length },
+      { name: "Completed",   value: completed },
+    ].filter(d => d.value > 0);
 
-  // Dynamic Line Data (simplified: count reports per day for the last few days)
-  const last7Days = [...Array(7)].map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const dateStr = d.toISOString().split('T')[0];
-    const count = issues.filter(iss => iss.date === dateStr).length;
-    return { day: dateStr.split('-').slice(1).join('/'), reports: count };
-  });
+    const sevenDays = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const dateStr = d.toISOString().split('T')[0];
+      const count = issues.filter(iss => iss.date === dateStr).length;
+      return { day: dateStr.split('-').slice(1).join('/'), reports: count };
+    });
 
-  // Dynamic Activity Feed
-  const recentActivities = issues.slice(0, 5).map(iss => ({
-    dot: iss.isEscalated ? '#ef4444' : (iss.status === 'Pending' ? '#f59e0b' : '#16a34a'),
-    text: <>
-      {iss.isEscalated && <span style={{ color: '#ef4444', fontWeight: 'bold' }}>[ESCALATED] </span>}
-      <strong>{iss.id}</strong> — {iss.equipment} is <strong>{iss.status}</strong>
-    </>,
-    time: "Latest"
-  }));
+    const recent = issues.slice(0, 5).map(iss => ({
+      dot: iss.isEscalated ? '#ef4444' : (iss.status === 'Pending' ? '#f59e0b' : '#16a34a'),
+      text: (
+        <>
+          {iss.isEscalated && <span style={{ color: '#ef4444', fontWeight: 'bold' }}>[ESCALATED] </span>}
+          <strong>{iss.id}</strong> — {iss.equipment} is <strong>{iss.status}</strong>
+        </>
+      ),
+      time: "Latest"
+    }));
+
+    return { totalReports: total, pendingReports: pending, underMaintenance: maintenance, completedReports: completed, pieData: pie, last7Days: sevenDays, recentActivities: recent };
+  }, [issues]);
 
   return (
     <div className="ad-wrapper">
@@ -651,19 +663,7 @@ function AdminDashboard() {
                 </thead>
                 <tbody>
                   {issues.map(issue => (
-                    <tr key={issue.id} className={issue.isEscalated ? "row-escalated" : ""}>
-                      <td>
-                        <span className="ad-issue-id">{issue.id}</span>
-                        {issue.isEscalated && <div className="escalated-tag">🔥 Escalated</div>}
-                      </td>
-                      <td><span className="ad-eq-name">{issue.equipment}</span></td>
-                      <td><span className="ad-category">🏷️ {issue.category}</span></td>
-                      <td><span className="ad-location">📍 {issue.location}</span></td>
-                      <td><span className={`ad-badge ${PRIORITY_CLASS[issue.priority]}`}>{issue.priority}</span></td>
-                      <td className="ad-date">{issue.date}</td>
-                      <td><span className={`ad-badge ${STATUS_CLASS[issue.status]}`}>{issue.status}</span></td>
-                      <td className="ad-tech">{issue.technician || <span className="ad-unassigned">Not Assigned</span>}</td>
-                    </tr>
+                    <IssueRow key={issue.id} issue={issue} />
                   ))}
                 </tbody>
               </table>
