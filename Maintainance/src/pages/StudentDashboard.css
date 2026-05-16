@@ -1157,7 +1157,7 @@
 
 .sd-form-grid {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 1fr minmax(220px, 280px);
   gap: 30px;
 }
 
@@ -1327,6 +1327,7 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
+  min-height: 52px;
 }
 
 .sd-submit-btn:hover:not(:disabled) {
@@ -1359,9 +1360,38 @@
   }
 }
 
+@media (max-width: 768px) {
+  .sd-qr-row {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+  .sd-qr-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .sd-radio-cards {
+    grid-template-columns: 1fr;
+  }
+  .sd-profile-view {
+    padding: 20px 0;
+  }
+  .sd-profile-card {
+    padding: 20px;
+  }
+  .sd-profile-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+}
+
 @media (max-width: 500px) {
   .sd-fields-grid {
     grid-template-columns: 1fr;
+  }
+  .sd-input {
+    font-size: 16px; /* Prevents iOS zoom */
   }
 }
 

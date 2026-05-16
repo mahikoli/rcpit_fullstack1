@@ -490,7 +490,19 @@
   gap: 14px; margin-bottom: 24px;
 }
 
+@media screen and (max-width: 1024px) {
+  .ad-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media screen and (max-width: 640px) {
+  .ad-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media screen and (max-width: 400px) {
   .ad-stats-grid {
     grid-template-columns: 1fr;
   }
@@ -1128,6 +1140,17 @@
   }
   .ad-modal-content form > div {
     grid-template-columns: 1fr !important;
+  }
+  .ad-modal-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ad-btn-cancel,
+  .ad-btn-save {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    justify-content: center;
   }
 }
 

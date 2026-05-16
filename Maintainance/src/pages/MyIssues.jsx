@@ -146,35 +146,37 @@ function MyIssues() {
         <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '15px' }}>
           💡 Click on any row to view full details and technician comments.
         </p>
-        <table className="issue-table">
-          <thead>
-            <tr>
-              <th>Lab</th>
-              <th>Equipment</th>
-              <th>Issue</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {issues.map((issue) => (
-              <tr 
-                key={issue.id} 
-                onClick={() => setSelectedIssue(issue)}
-                style={{ cursor: 'pointer' }}
-                className="clickable-row"
-              >
-                <td>{issue.lab_name}</td>
-                <td>{issue.equipment_name}</td>
-                <td style={{ textAlign: 'left', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {issue.description}
-                </td>
-                <td className={issue.status === "Solved" || issue.status === "Completed" ? "solved" : "pending"}>
-                  {issue.status}
-                </td>
+        <div className="issue-table-wrapper">
+          <table className="issue-table">
+            <thead>
+              <tr>
+                <th>Lab</th>
+                <th>Equipment</th>
+                <th>Issue</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {issues.map((issue) => (
+                <tr 
+                  key={issue.id} 
+                  onClick={() => setSelectedIssue(issue)}
+                  style={{ cursor: 'pointer' }}
+                  className="clickable-row"
+                >
+                  <td>{issue.lab_name}</td>
+                  <td>{issue.equipment_name}</td>
+                  <td style={{ textAlign: 'left', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {issue.description}
+                  </td>
+                  <td className={issue.status === "Solved" || issue.status === "Completed" ? "solved" : "pending"}>
+                    {issue.status}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {issues.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>

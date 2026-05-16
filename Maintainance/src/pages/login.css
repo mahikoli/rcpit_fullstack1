@@ -121,6 +121,8 @@ border: 1px solid #d0d5dd;
 background: white;
 font-size: 14px;
 transition: 0.2s;
+box-sizing: border-box;
+min-height: 44px;
 }
 
 /* Input focus */
@@ -134,7 +136,7 @@ outline: none;
 .login-btn {
 width: 100%;
 margin-top: 25px;
-padding: 12px;
+padding: 14px;
 border: none;
 border-radius: 8px;
 background: #243c8f;
@@ -142,6 +144,8 @@ color: white;
 font-size: 15px;
 cursor: pointer;
 transition: 0.3s;
+min-height: 52px;
+font-family: inherit;
 }
 
 /* Login hover */

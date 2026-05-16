@@ -72,6 +72,7 @@ confirmation:"Confirmed"
 return (
 <div className="issues-container">
 
+<div className="issues-table-wrapper">
 <table className="issues-table">
 
 <thead>
@@ -135,6 +136,7 @@ return (
 </tbody>
 
 </table>
+</div>
 
 </div>
 );

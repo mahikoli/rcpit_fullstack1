@@ -1,33 +1,82 @@
-.issue-count{
-margin:15px 0;
-font-size:18px;
+/* ── MY ISSUES TABLE ─────────────────────────────── */
+.issue-count {
+  margin: 15px 0;
+  font-size: 18px;
 }
 
-.issue-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);
+/* Table wrapper for horizontal scroll on mobile */
+.issue-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+.issue-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .issue-table th,
-.issue-table td{
-padding:12px;
-border-bottom:1px solid #ddd;
-text-align:center;
+.issue-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
 }
 
-.issue-table th{
-background:#1e3a8a;
-color:white;
+.issue-table th {
+  background: #1e3a8a;
+  color: white;
+  white-space: nowrap;
+  font-size: 14px;
 }
 
-.solved{
-color:green;
-font-weight:bold;
+.issue-table td {
+  font-size: 14px;
 }
 
-.pending{
-color:red;
-font-weight:bold;
+.solved  { color: green; font-weight: bold; }
+.pending { color: red;   font-weight: bold; }
+
+/* ── RESPONSIVE ───────────────────────────────────── */
+@media (max-width: 1024px) {
+  .issue-table th,
+  .issue-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .issue-count {
+    font-size: 16px;
+    margin: 10px 0;
+  }
+
+  .issue-table {
+    min-width: 500px;
+  }
+
+  .issue-table th,
+  .issue-table td {
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .issue-count {
+    font-size: 15px;
+  }
+
+  .issue-table {
+    min-width: 420px;
+  }
+
+  .issue-table th,
+  .issue-table td {
+    padding: 8px 5px;
+    font-size: 11px;
+  }
 }
