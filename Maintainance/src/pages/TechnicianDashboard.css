@@ -43,23 +43,22 @@
   .td-wrapper {
     flex-direction: column;
     position: relative;
-    height: auto;
-    min-height: 100dvh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    height: 100dvh;           /* keep full viewport height */
+    overflow: hidden;          /* let td-main handle scrolling */
   }
 }
 
 /* ─── SIDEBAR ───────────────────────────────────────────────────── */
 .td-sidebar {
   width: 252px;
-  min-height: 100vh;
+  height: 100%;
   background: linear-gradient(160deg, #7c3aed 0%, #4f46e5 60%, #2563eb 100%);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
 }
 
 .td-sidebar::before {
@@ -83,18 +82,30 @@
 }
 
 .td-brand {
-  padding: 28px 22px 22px;
+  padding: 24px 22px 20px;
   border-bottom: 1px solid rgba(255,255,255,0.15);
   position: relative; z-index: 1;
+  flex-shrink: 0;
 }
 
 .td-brand-icon {
-  width: 42px; height: 42px;
+  width: 44px; height: 44px;
   background: rgba(255,255,255,0.2);
   border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
-  margin-bottom: 12px; font-size: 20px;
+  margin-bottom: 10px; font-size: 20px;
   border: 1px solid rgba(255,255,255,0.3);
+  overflow: hidden;            /* prevent logo image from spilling out */
+  flex-shrink: 0;
+}
+
+/* Constrain any img inside the brand icon */
+.td-brand-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  display: block;
 }
 
 .td-brand-name {
@@ -179,17 +190,20 @@
 .td-main {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 28px;
   background: var(--td-bg);
   scroll-behavior: smooth;
   overscroll-behavior-y: contain;
+  height: 100%;
 }
 
 @media screen and (max-width: 768px) {
   .td-main {
-    padding: 20px 16px 100px;
-    height: auto;
-    overflow-y: visible;
+    padding: 20px 16px 80px;
+    height: 100%;          /* fill remaining space */
+    overflow-y: auto;      /* let this div scroll */
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -534,32 +548,39 @@
 
   .td-sidebar {
     position: fixed;
-    left: -252px;
+    left: -260px;
     top: 0;
     bottom: 0;
-    box-shadow: 10px 0 30px rgba(0,0,0,0.1);
+    height: 100dvh;           /* full viewport height */
+    box-shadow: 10px 0 30px rgba(0,0,0,0.15);
     z-index: 1000;
+    transition: left 0.3s cubic-bezier(0.4,0,0.2,1);
   }
   .td-sidebar.open {
     left: 0;
   }
 
-  .td-main {
-    padding: 20px 16px;
-    height: 100vh;
-    overflow-y: auto;
+  /* sidebar overlay */
+  .td-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.45);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    animation: td-fadeIn 0.25s ease;
   }
-  
+  @keyframes td-fadeIn { from{opacity:0} to{opacity:1} }
+
   .td-topbar {
     flex-direction: column; align-items: flex-start;
-    gap: 12px; margin-bottom: 16px;
+    gap: 10px; margin-bottom: 16px;
   }
   
   .td-topbar-actions { width: 100%; justify-content: space-between; }
   .td-search { flex: 1; margin-right: 8px; }
 
   .td-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .td-stat-value { font-size: 26px; }
+  .td-stat-value { font-size: 24px; }
 
   .td-content-grid { grid-template-columns: 1fr; }
   .td-right-panel { width: 100%; }
@@ -568,7 +589,7 @@
   .td-badges-row { flex-wrap: wrap; }
   .td-issue-meta { flex-wrap: wrap; gap: 8px; }
 
-  .td-filter-tabs { overflow-x: auto; scrollbar-width: none; }
+  .td-filter-tabs { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .td-filter-tabs::-webkit-scrollbar { display: none; }
 }
 

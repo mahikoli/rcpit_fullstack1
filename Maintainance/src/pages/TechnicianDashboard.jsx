@@ -208,13 +208,9 @@ export default function TechnicianDashboard() {
       <aside className={`td-sidebar ${sidebarOpen ? "open" : ""}`}>
         {/* Brand */}
         <div className="td-brand">
-          <div className="sd-brand-icon">
-  <img
-    src={collegeLogo}
-    alt="College Logo"
-    style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "8px" }}
-  />
-</div>
+          <div className="td-brand-icon">
+            <img src={collegeLogo} alt="College Logo" />
+          </div>
           <div className="td-brand-name">TechDesk Pro</div>
           <div className="td-brand-sub">Staff Panel</div>
           <button className="td-sidebar-close" onClick={() => setSidebarOpen(false)}>×</button>
