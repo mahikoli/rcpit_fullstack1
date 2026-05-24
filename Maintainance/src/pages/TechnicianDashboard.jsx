@@ -170,7 +170,7 @@ export default function TechnicianDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const { filtered, stats, completionPct, circumference, bars } = useMemo(() => {
+  const { filtered, stats, completionPct, circumference, bars, completedCount, totalCount } = useMemo(() => {
     const filterVal = FILTER_MAP[activeTab];
     const filteredList = filterVal === null ? issues : issues.filter((i) => i.status === filterVal);
     
@@ -184,19 +184,19 @@ export default function TechnicianDashboard() {
     const highCount = issues.filter(i => i.priority === "High").length;
     const medCount = issues.filter(i => i.priority === "Medium").length;
     const lowCount = issues.filter(i => i.priority === "Low").length;
-    const totalCount = issues.length || 1;
+    const totalCountVal = issues.length || 1;
 
     const b = [
-      { label: "High",   pct: (highCount/totalCount)*100, color: "#ef4444", countColor: "#dc2626", count: highCount },
-      { label: "Medium", pct: (medCount/totalCount)*100, color: "#f59e0b", countColor: "#d97706", count: medCount },
-      { label: "Low",    pct: (lowCount/totalCount)*100, color: "#22c55e", countColor: "#16a34a", count: lowCount },
+      { label: "High",   pct: (highCount/totalCountVal)*100, color: "#ef4444", countColor: "#dc2626", count: highCount },
+      { label: "Medium", pct: (medCount/totalCountVal)*100, color: "#f59e0b", countColor: "#d97706", count: medCount },
+      { label: "Low",    pct: (lowCount/totalCountVal)*100, color: "#22c55e", countColor: "#16a34a", count: lowCount },
     ];
 
-    const completedCount = issues.filter(i => i.status === "Completed").length;
-    const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const completedCountVal = issues.filter(i => i.status === "Completed").length;
+    const pct = totalCountVal > 0 ? Math.round((completedCountVal / totalCountVal) * 100) : 0;
     const circ = 2 * Math.PI * 38;
 
-    return { filtered: filteredList, stats: s, completionPct: pct, circumference: circ, bars: b };
+    return { filtered: filteredList, stats: s, completionPct: pct, circumference: circ, bars: b, completedCount: completedCountVal, totalCount: issues.length };
   }, [issues, activeTab]);
 
   return (
