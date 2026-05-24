@@ -462,7 +462,7 @@ export default function TechnicianDashboard() {
         )}
 
         {/* ── CLEAN ISSUES VIEW ── */}
-        {["issues", "assigned", "inprogress", "completed"].includes(activeNav) && (
+        {["issues", "assigned", "inprogress", "resolved", "completed"].includes(activeNav) && (
           <div className="td-clean-view animated-fade-in" style={{ padding: '0 20px' }}>
             <div className="td-sec-header" style={{ marginBottom: '24px' }}>
               <div className="td-sec-title" style={{ fontSize: '24px' }}>{activeTab} Issues</div>

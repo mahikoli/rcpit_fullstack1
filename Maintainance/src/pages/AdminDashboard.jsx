@@ -54,6 +54,14 @@ function AdminDashboard() {
   const [notices, setNotices] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [noticeForm, setNoticeForm] = useState({ title: "", body: "" });
+
+  // Reports page state
+  const [reportStartDate, setReportStartDate] = useState("");
+  const [reportEndDate, setReportEndDate] = useState("");
+  const [reportStatus, setReportStatus] = useState("All");
+  const [reportPriority, setReportPriority] = useState("All");
+  const [reportDept, setReportDept] = useState("All");
+  const [reportCategory, setReportCategory] = useState("All");
   const [loading, setLoading] = useState(true);
   const [userTab, setUserTab] = useState("student"); // 'student' or 'staff'
   const [profileOpen, setProfileOpen] = useState(false);
@@ -415,6 +423,132 @@ function AdminDashboard() {
 
     return { totalReports: total, pendingReports: pending, underMaintenance: maintenance, completedReports: completed, pieData: pie, last7Days: sevenDays, recentActivities: recent };
   }, [issues]);
+
+  // Reports filtering & calculations
+  const filteredReports = useMemo(() => {
+    return issues.filter(issue => {
+      if (reportStartDate && issue.createdRaw) {
+        const start = new Date(reportStartDate);
+        const issueDate = new Date(issue.createdRaw);
+        if (issueDate < start) return false;
+      }
+      if (reportEndDate && issue.createdRaw) {
+        const end = new Date(reportEndDate);
+        end.setHours(23, 59, 59, 999);
+        const issueDate = new Date(issue.createdRaw);
+        if (issueDate > end) return false;
+      }
+      if (reportStatus !== "All" && issue.status !== reportStatus) return false;
+      if (reportPriority !== "All" && issue.priority !== reportPriority) return false;
+      if (reportDept !== "All" && issue.dept !== reportDept) return false;
+      if (reportCategory !== "All" && issue.equipment_type !== reportCategory) return false;
+      return true;
+    });
+  }, [issues, reportStartDate, reportEndDate, reportStatus, reportPriority, reportDept, reportCategory]);
+
+  const reportStats = useMemo(() => {
+    const total = filteredReports.length;
+    const completed = filteredReports.filter(i => i.status === "Completed").length;
+    const pending = filteredReports.filter(i => i.status === "Pending").length;
+    const escalated = filteredReports.filter(i => i.isEscalated).length;
+    const assigned = filteredReports.filter(i => i.status === "Assigned" || i.status === "In Progress").length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    const categoryCounts = {};
+    filteredReports.forEach(i => {
+      const cat = i.category || "General";
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+    let topCategory = "N/A";
+    let maxCatCount = 0;
+    Object.entries(categoryCounts).forEach(([cat, count]) => {
+      if (count > maxCatCount) {
+        topCategory = cat;
+        maxCatCount = count;
+      }
+    });
+
+    const deptCounts = {};
+    filteredReports.forEach(i => {
+      const dept = i.dept || "N/A";
+      deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+    });
+    let topDept = "N/A";
+    let maxDeptCount = 0;
+    Object.entries(deptCounts).forEach(([d, count]) => {
+      if (count > maxDeptCount) {
+        topDept = d;
+        maxDeptCount = count;
+      }
+    });
+
+    return {
+      total,
+      completed,
+      pending,
+      escalated,
+      assigned,
+      completionRate,
+      topCategory,
+      topDept
+    };
+  }, [filteredReports]);
+
+  const statusPieData = useMemo(() => {
+    const counts = {};
+    filteredReports.forEach(i => {
+      counts[i.status] = (counts[i.status] || 0) + 1;
+    });
+    const colors = ["#f59e0b", "#7c3aed", "#2563eb", "#16a34a"];
+    return Object.entries(counts).map(([name, value], idx) => ({ 
+      name, 
+      value, 
+      color: colors[idx % colors.length] 
+    }));
+  }, [filteredReports]);
+
+  const deptBarData = useMemo(() => {
+    const counts = {};
+    filteredReports.forEach(i => {
+      const d = i.dept || "N/A";
+      counts[d] = (counts[d] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [filteredReports]);
+
+  const handleExportCSV = () => {
+    if (filteredReports.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+    const headers = ["Issue ID", "Category", "Equipment Name", "Location", "Department", "Priority", "Status", "Reported Date", "Technician"];
+    const rows = filteredReports.map(i => [
+      i.id,
+      i.category,
+      i.equipment,
+      i.location,
+      i.dept,
+      i.priority,
+      i.status,
+      i.date,
+      i.technician || "Unassigned"
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `RCPIT_Maintenance_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrintReport = () => {
+    window.print();
+  };
 
   return (
     <div className="ad-wrapper">
@@ -1048,16 +1182,240 @@ function AdminDashboard() {
           </div>
         )}
 
-        {/* ── PLACEHOLDER PAGES ── */}
-        {["reports"].includes(page) && (
-          <div className="ad-placeholder">
-            <div className="ad-placeholder-icon">
-              {page === "equipment" ? "🔧" : "📄"}
+        {/* ── REPORTS PAGE ── */}
+        {page === "reports" && (
+          <div className="ad-reports-dashboard animated-fade-in">
+            {/* Filter Panel */}
+            <div className="ad-reports-filters">
+              <div className="ad-filter-item">
+                <label>Start Date</label>
+                <input 
+                  type="date" 
+                  className="ad-filter-input" 
+                  value={reportStartDate} 
+                  onChange={(e) => setReportStartDate(e.target.value)} 
+                />
+              </div>
+              <div className="ad-filter-item">
+                <label>End Date</label>
+                <input 
+                  type="date" 
+                  className="ad-filter-input" 
+                  value={reportEndDate} 
+                  onChange={(e) => setReportEndDate(e.target.value)} 
+                />
+              </div>
+              <div className="ad-filter-item">
+                <label>Category</label>
+                <select 
+                  className="ad-select" 
+                  style={{ padding: '8px 12px', borderRadius: '10px' }}
+                  value={reportCategory} 
+                  onChange={(e) => setReportCategory(e.target.value)}
+                >
+                  <option value="All">All Categories</option>
+                  <option value="IT">IT Equipment</option>
+                  <option value="Electrical">Electrical</option>
+                </select>
+              </div>
+              <div className="ad-filter-item">
+                <label>Status</label>
+                <select 
+                  className="ad-select" 
+                  style={{ padding: '8px 12px', borderRadius: '10px' }}
+                  value={reportStatus} 
+                  onChange={(e) => setReportStatus(e.target.value)}
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Assigned">Assigned</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+              <div className="ad-filter-item">
+                <label>Priority</label>
+                <select 
+                  className="ad-select" 
+                  style={{ padding: '8px 12px', borderRadius: '10px' }}
+                  value={reportPriority} 
+                  onChange={(e) => setReportPriority(e.target.value)}
+                >
+                  <option value="All">All Priorities</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+              <div className="ad-filter-item">
+                <label>Department</label>
+                <select 
+                  className="ad-select" 
+                  style={{ padding: '8px 12px', borderRadius: '10px' }}
+                  value={reportDept} 
+                  onChange={(e) => setReportDept(e.target.value)}
+                >
+                  <option value="All">All Departments</option>
+                  <option value="IT">IT</option>
+                  <option value="Computer Engineering">Computer Engineering</option>
+                  <option value="Information Technology">Information Technology</option>
+                  <option value="Electrical Engineering">Electrical Engineering</option>
+                  <option value="Mechanical Engineering">Mechanical Engineering</option>
+                  <option value="Civil Engineering">Civil Engineering</option>
+                </select>
+              </div>
             </div>
-            <div className="ad-placeholder-title">
-              {page.charAt(0).toUpperCase() + page.slice(1)} Page
+
+            {/* Export Actions */}
+            <div className="ad-reports-actions">
+              <button className="ad-btn-export" onClick={handleExportCSV}>
+                📥 Export CSV
+              </button>
+              <button className="ad-btn-primary" onClick={handlePrintReport}>
+                🖨️ Print Report
+              </button>
             </div>
-            <div className="ad-placeholder-sub">This section is under construction.</div>
+
+            {/* Stats Summary Grid */}
+            <div className="ad-reports-stats">
+              <div className="ad-report-card">
+                <div className="ad-report-card-icon icon-blue">📋</div>
+                <div className="ad-report-card-info">
+                  <div className="ad-report-card-val">{reportStats.total}</div>
+                  <div className="ad-report-card-lbl">Filtered Reports</div>
+                </div>
+              </div>
+              <div className="ad-report-card">
+                <div className="ad-report-card-icon icon-green">✅</div>
+                <div className="ad-report-card-info">
+                  <div className="ad-report-card-val">{reportStats.completionRate}%</div>
+                  <div className="ad-report-card-lbl">Completion Rate</div>
+                </div>
+              </div>
+              <div className="ad-report-card">
+                <div className="ad-report-card-icon icon-orange">⚠️</div>
+                <div className="ad-report-card-info">
+                  <div className="ad-report-card-val">{reportStats.escalated}</div>
+                  <div className="ad-report-card-lbl">Escalated Issues</div>
+                </div>
+              </div>
+              <div className="ad-report-card">
+                <div className="ad-report-card-icon icon-purple">🏢</div>
+                <div className="ad-report-card-info">
+                  <div className="ad-report-card-val" style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{reportStats.topDept}</div>
+                  <div className="ad-report-card-lbl">Top Department</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Visualization Charts */}
+            <div className="ad-charts-grid" style={{ marginBottom: '16px' }}>
+              <div className="ad-chart-card">
+                <div className="ad-sec-title" style={{ marginBottom: '16px' }}>Status Breakdown</div>
+                <div style={{ width: '100%', height: 260 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={statusPieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {statusPieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="ad-chart-card">
+                <div className="ad-sec-title" style={{ marginBottom: '16px' }}>Issues by Department</div>
+                <div style={{ width: '100%', height: 260 }}>
+                  {deptBarData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={deptBarData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="value" stroke="#7c3aed" strokeWidth={2.5} dot={{ fill: "#7c3aed", r: 4 }} name="Issues count" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--ad-muted)' }}>No data available</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Reports List Preview Table */}
+            <div>
+              <div className="ad-sec-header" style={{ marginBottom: 16 }}>
+                <span className="ad-sec-title">Report Data Preview</span>
+                <span className="ad-badge-count">{filteredReports.length} rows</span>
+              </div>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Issue ID</th>
+                      <th>Category</th>
+                      <th>Equipment</th>
+                      <th>Location</th>
+                      <th>Department</th>
+                      <th>Priority</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Technician</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredReports.map((iss, i) => (
+                      <tr key={i} className={iss.isEscalated ? "row-escalated" : ""}>
+                        <td className="ad-issue-id">{iss.id}</td>
+                        <td><span className="ad-category">🏷️ {iss.category}</span></td>
+                        <td><span className="ad-eq-name">{iss.equipment}</span></td>
+                        <td><span className="ad-location">📍 {iss.location}</span></td>
+                        <td><span className="ad-location">{iss.dept}</span></td>
+                        <td>
+                          <span className={`ad-badge ${
+                            iss.priority === 'High' ? 'priority-high' : 
+                            (iss.priority === 'Medium' ? 'priority-medium' : 'priority-low')
+                          }`}>
+                            {iss.priority}
+                          </span>
+                        </td>
+                        <td className="ad-date">{iss.date}</td>
+                        <td>
+                          <span className={`ad-badge ${
+                            iss.status === 'Completed' ? 'status-completed' : 
+                            (iss.status === 'Pending' ? 'status-pending' : 
+                            (iss.status === 'Assigned' ? 'status-assigned' : 'status-inprogress'))
+                          }`}>
+                            {iss.status}
+                          </span>
+                        </td>
+                        <td className="ad-tech">{iss.technician || <span className="ad-unassigned">Not Assigned</span>}</td>
+                      </tr>
+                    ))}
+                    {filteredReports.length === 0 && (
+                      <tr>
+                        <td colSpan="9" className="ad-empty-row" style={{ padding: '20px', textAlign: 'center', color: 'var(--ad-muted)' }}>
+                          No matching records found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
         {/* ── PROFILE PAGE ── */}
