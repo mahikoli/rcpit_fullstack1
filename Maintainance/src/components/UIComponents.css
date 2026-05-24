@@ -1,0 +1,198 @@
+.ui-stat-card {
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, box-shadow;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  animation: ui-fadeUp 0.5s ease both;
+}
+
+@keyframes ui-fadeUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ui-stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+.ui-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+
+.ui-stat-value {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 1;
+}
+
+.ui-stat-sub {
+  font-size: 11px;
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+/* Color Variants with Gradients */
+.ui-stat-card.s1 { 
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); 
+  color: #1e40af; 
+  border-color: #bfdbfe;
+}
+.ui-stat-card.s1 .ui-stat-label { color: #2563eb; }
+.ui-stat-card.s1 .ui-stat-value { color: #1e3a8a; }
+
+.ui-stat-card.s2 { 
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); 
+  color: #15803d; 
+  border-color: #bbf7d0;
+}
+.ui-stat-card.s2 .ui-stat-label { color: #16a34a; }
+.ui-stat-card.s2 .ui-stat-value { color: #14532d; }
+
+.ui-stat-card.s3 { 
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); 
+  color: #b45309; 
+  border-color: #fde68a;
+}
+.ui-stat-card.s3 .ui-stat-label { color: #d97706; }
+.ui-stat-card.s3 .ui-stat-value { color: #78350f; }
+
+.ui-stat-card.s4 { 
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); 
+  color: #7e22ce; 
+  border-color: #e9d5ff;
+}
+.ui-stat-card.s4 .ui-stat-label { color: #9333ea; }
+.ui-stat-card.s4 .ui-stat-value { color: #581c87; }
+
+.ui-stat-icon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 38px;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+/* Modals */
+.ui-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: ui-fadeIn 0.2s ease-out;
+}
+
+.ui-modal-box {
+  background: white;
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  animation: ui-slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ui-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ui-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.ui-modal-close {
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.ui-modal-close:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.ui-modal-body {
+  padding: 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.ui-modal-footer {
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Badges */
+.ui-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ui-badge-default { background: #f1f5f9; color: #475569; }
+.ui-badge-success { background: #dcfce7; color: #166534; }
+.ui-badge-warn    { background: #fef3c7; color: #92400e; }
+.ui-badge-danger  { background: #fee2e2; color: #991b1b; }
+.ui-badge-info    { background: #e0f2fe; color: #075985; }
+
+/* Animations */
+@keyframes ui-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ui-slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Mobile Optimizations */
+@media screen and (max-width: 768px) {
+  .ui-modal-box {
+    max-height: 90vh;
+  }
+  .ui-modal-body {
+    padding: 20px;
+  }
+  .ui-stat-value {
+    font-size: 28px;
+  }
+}

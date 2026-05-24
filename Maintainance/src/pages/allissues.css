@@ -1,0 +1,168 @@
+.issues-container {
+  padding: 20px;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+
+/* ── TABLE WRAPPER FOR RESPONSIVE SCROLL ── */
+.issues-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.issues-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.issues-table th {
+  text-align: left;
+  padding: 16px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #6c7a89;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+}
+
+.issues-table td {
+  padding: 18px 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 15px;
+  color: #2c3e50;
+}
+
+.tech-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #233b84;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* STATUS BADGES */
+.status {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.status.inprogress { background: #ffe7cc; color: #e67e22; }
+.status.assigned   { background: #dfe9ff; color: #2962ff; }
+.status.closed     { background: #d4f5e3; color: #1e9e62; }
+.status.waitingconfirmation { background: #e7d8ff; color: #8e44ad; }
+
+/* CONFIRMATION */
+.confirm {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.confirm.confirmed { background: #d4f5e3; color: #1e9e62; }
+.confirm.pending   { background: #ececec; }
+.confirm.n\/a      { background: #ececec; }
+
+/* ACTIONS */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.delete {
+  color: red;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn {
+  border: 1px solid #27ae60;
+  color: #27ae60;
+  background: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 44px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* ── RESPONSIVE BREAKPOINTS ── */
+
+@media (max-width: 1024px) {
+  .issues-table th,
+  .issues-table td {
+    padding: 12px 10px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .issues-container {
+    padding: 12px;
+  }
+
+  .issues-table {
+    min-width: 560px;
+  }
+
+  .issues-table th {
+    padding: 10px 8px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  .issues-table td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+
+  .status,
+  .confirm {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .actions {
+    gap: 6px;
+  }
+
+  .close-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-height: 38px;
+  }
+}
+
+@media (max-width: 480px) {
+  .issues-container {
+    padding: 8px;
+  }
+}
