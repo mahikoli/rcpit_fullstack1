@@ -6,7 +6,11 @@ LayerTechnologyFrontendReact.jsBackendFastAPI (Python)StylingCSS / Tailwind CSSA
 
 📁 Project Structure
 rcpit_fullstack/
+<<<<<<< HEAD
 ├── maintainance/          # React application
+=======
+├── frontend/          # React application
+>>>>>>> e9d82e55fbec5dda81fa44c83a01b3b929547670
 │   ├── public/
 │   ├── src/
 │   │   ├── components/
